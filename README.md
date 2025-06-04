@@ -6,7 +6,7 @@
 
 PingBar is a modern, native macOS menu bar app that continuously monitors your network connectivity and DNS settings.
 
-It provides real-time ping statistics, network interface information, DNS management, and advanced features for power users—all from your menu bar.
+It provides real-time ping statistics, network interface information, and DNS management, all from your menu bar.
 
 ## Screenshots
 
