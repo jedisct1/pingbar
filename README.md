@@ -4,7 +4,7 @@
 [![macOS](https://img.shields.io/badge/macOS-12.0+-green.svg)](https://www.apple.com/macos/)
 [![Swift](https://img.shields.io/badge/Swift-6.1-orange.svg)](https://swift.org)
 
-PingBar is a **lightweight**, modern, native macOS menu bar app that continuously monitors your network connectivity and DNS settings.
+PingBar is a lightweight, modern, non-intrusive, native macOS menu bar app that continuously monitors your network connectivity and DNS settings.
 
 It provides real-time ping statistics, network interface information, and **one-click DNS management including dnscrypt-proxy control**, all from your menu bar with minimal system resource usage.
 
