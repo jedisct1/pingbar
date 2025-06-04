@@ -14,7 +14,7 @@ class PreferencesViewController: NSViewController {
         self.view = view
         view.translatesAutoresizingMaskIntoConstraints = false
         view.setFrameSize(NSSize(width: 480, height: 340))
-        
+
         // Set a nice background color
         view.wantsLayer = true
         view.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
@@ -24,20 +24,20 @@ class PreferencesViewController: NSViewController {
         headerLabel.font = NSFont.systemFont(ofSize: 18, weight: .semibold)
         headerLabel.alignment = .center
         headerLabel.textColor = NSColor.labelColor
-        
+
         // Section headers
         let networkSectionLabel = NSTextField(labelWithString: "🌐 Network Settings")
         networkSectionLabel.font = NSFont.systemFont(ofSize: 14, weight: .medium)
         networkSectionLabel.textColor = NSColor.secondaryLabelColor
-        
+
         let dnsSectionLabel = NSTextField(labelWithString: "🔧 DNS Management")
         dnsSectionLabel.font = NSFont.systemFont(ofSize: 14, weight: .medium)
         dnsSectionLabel.textColor = NSColor.secondaryLabelColor
-        
+
         let systemSectionLabel = NSTextField(labelWithString: "💻 System Integration")
         systemSectionLabel.font = NSFont.systemFont(ofSize: 14, weight: .medium)
         systemSectionLabel.textColor = NSColor.secondaryLabelColor
-        
+
         // Labels
         let intervalLabel = NSTextField(labelWithString: "⏱ Ping interval (seconds):")
         let hostLabel = NSTextField(labelWithString: "🎯 Target host (URL):")
@@ -56,20 +56,20 @@ class PreferencesViewController: NSViewController {
         self.styleTextField(intervalField)
         intervalField.stringValue = String(UserDefaults.standard.double(forKey: "PingInterval") > 0 ? UserDefaults.standard.double(forKey: "PingInterval") : 5.0)
         intervalField.placeholderString = "e.g. 5"
-        
+
         self.styleTextField(hostField)
         hostField.stringValue = UserDefaults.standard.string(forKey: "PingHost") ?? "https://www.google.com"
         hostField.placeholderString = "e.g. https://www.google.com"
-        
+
         self.styleTextField(highPingField)
         highPingField.stringValue = String(UserDefaults.standard.integer(forKey: "HighPingThreshold") > 0 ? UserDefaults.standard.integer(forKey: "HighPingThreshold") : 200)
         highPingField.placeholderString = "e.g. 200"
 
         // Styled checkboxes
         self.styleCheckbox(revertDNSCheckbox)
-        self.styleCheckbox(restoreDNSCheckbox) 
+        self.styleCheckbox(restoreDNSCheckbox)
         self.styleCheckbox(launchAtLoginCheckbox)
-        
+
         // Enhanced buttons
         let saveButton = NSButton(title: "💾 Save Settings", target: self, action: #selector(saveClicked))
         let cancelButton = NSButton(title: "❌ Cancel", target: self, action: #selector(cancelClicked))
@@ -85,33 +85,33 @@ class PreferencesViewController: NSViewController {
         headerStack.orientation = .vertical
         headerStack.spacing = 20
         headerStack.translatesAutoresizingMaskIntoConstraints = false
-        
+
         // Network settings section
         let networkStack = NSStackView()
         networkStack.orientation = .vertical
         networkStack.spacing = 12
         networkStack.translatesAutoresizingMaskIntoConstraints = false
-        
+
         let intervalRow = NSStackView(views: [intervalLabel, intervalField])
         intervalRow.orientation = .horizontal
         intervalRow.spacing = 12
         intervalRow.alignment = .centerY
-        
+
         let hostRow = NSStackView(views: [hostLabel, hostField])
         hostRow.orientation = .horizontal
         hostRow.spacing = 12
         hostRow.alignment = .centerY
-        
+
         let highPingRow = NSStackView(views: [highPingLabel, highPingField])
         highPingRow.orientation = .horizontal
         highPingRow.spacing = 12
         highPingRow.alignment = .centerY
-        
+
         networkStack.addArrangedSubview(networkSectionLabel)
         networkStack.addArrangedSubview(intervalRow)
         networkStack.addArrangedSubview(hostRow)
         networkStack.addArrangedSubview(highPingRow)
-        
+
         // DNS settings section
         let dnsStack = NSStackView()
         dnsStack.orientation = .vertical
@@ -120,7 +120,7 @@ class PreferencesViewController: NSViewController {
         dnsStack.addArrangedSubview(dnsSectionLabel)
         dnsStack.addArrangedSubview(revertDNSCheckbox)
         dnsStack.addArrangedSubview(restoreDNSCheckbox)
-        
+
         // System settings section
         let systemStack = NSStackView()
         systemStack.orientation = .vertical
@@ -128,7 +128,7 @@ class PreferencesViewController: NSViewController {
         systemStack.translatesAutoresizingMaskIntoConstraints = false
         systemStack.addArrangedSubview(systemSectionLabel)
         systemStack.addArrangedSubview(launchAtLoginCheckbox)
-        
+
         // Main form stack
         let formStack = NSStackView()
         formStack.orientation = .vertical
@@ -192,9 +192,9 @@ class PreferencesViewController: NSViewController {
     @objc func cancelClicked() {
         self.view.window?.close()
     }
-    
+
     // MARK: - UI Styling Helper Methods
-    
+
     private func styleTextField(_ textField: NSTextField) {
         textField.font = NSFont.systemFont(ofSize: 13)
         textField.isEditable = true
@@ -209,30 +209,30 @@ class PreferencesViewController: NSViewController {
         textField.layer?.borderWidth = 1
         textField.layer?.borderColor = NSColor.separatorColor.cgColor
     }
-    
+
     private func styleCheckbox(_ checkbox: NSButton) {
         checkbox.font = NSFont.systemFont(ofSize: 13)
         checkbox.controlSize = .regular
     }
-    
+
     private func styleButton(_ button: NSButton, isPrimary: Bool) {
         button.bezelStyle = .rounded
         button.font = NSFont.systemFont(ofSize: 13, weight: isPrimary ? .semibold : .regular)
         button.controlSize = .regular
-        
+
         if isPrimary {
             button.keyEquivalent = "\\r"
         }
-        
+
         button.wantsLayer = true
         button.layer?.cornerRadius = 6
-        
+
         if isPrimary {
             button.layer?.backgroundColor = NSColor.controlAccentColor.cgColor
             button.contentTintColor = NSColor.white
         }
     }
-    
+
     private func createSeparator() -> NSView {
         let separator = NSView()
         separator.wantsLayer = true
@@ -254,4 +254,4 @@ class PreferencesWindowController: NSWindowController {
         window.center()
         self.init(window: window)
     }
-} 
+}

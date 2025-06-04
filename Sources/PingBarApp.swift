@@ -26,23 +26,23 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
 
         let menu = NSMenu()
         menu.delegate = self
-        
+
         let pingItem = NSMenuItem(title: "Checking...", action: nil, keyEquivalent: "")
         self.stylePingMenuItem(pingItem)
         menu.addItem(pingItem)
-        
+
         let graphItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
         self.styleGraphMenuItem(graphItem)
         menu.addItem(graphItem)
-        
+
         menu.addItem(.separator())
-        
+
         let prefsItem = NSMenuItem(title: "⚙ Preferences…", action: #selector(showPreferences), keyEquivalent: ",")
         self.styleSystemMenuItem(prefsItem)
         menu.addItem(prefsItem)
-        
+
         menu.addItem(.separator())
-        
+
         let quitItem = NSMenuItem(title: "⏻ Quit PingBar", action: #selector(quit), keyEquivalent: "q")
         self.styleSystemMenuItem(quitItem)
         menu.addItem(quitItem)
@@ -234,20 +234,20 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
             alert.runModal()
         }
     }
-    
+
     // MARK: - UI Styling Methods
-    
+
     private func setupStatusButton() {
         guard let button = statusItem?.button else { return }
         button.font = NSFont.systemFont(ofSize: 16, weight: .medium)
         button.imagePosition = .noImage
     }
-    
+
     private func updateStatusIndicator(_ status: PingManager.PingStatus) {
         guard let button = statusItem?.button else { return }
-        
+
         let attributes: [NSAttributedString.Key: Any]
-        
+
         switch status {
         case .good:
             attributes = [
@@ -279,7 +279,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
             button.attributedTitle = attributedTitle
         }
     }
-    
+
     private func stylePingMenuItem(_ item: NSMenuItem) {
         let font = NSFont.monospacedSystemFont(ofSize: 13, weight: .medium)
         let attributes: [NSAttributedString.Key: Any] = [
@@ -289,7 +289,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
         let attributedTitle = NSAttributedString(string: item.title, attributes: attributes)
         item.attributedTitle = attributedTitle
     }
-    
+
     private func styleGraphMenuItem(_ item: NSMenuItem) {
         let font = NSFont.monospacedSystemFont(ofSize: 11, weight: .regular)
         let attributes: [NSAttributedString.Key: Any] = [
@@ -299,7 +299,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
         let attributedTitle = NSAttributedString(string: item.title, attributes: attributes)
         item.attributedTitle = attributedTitle
     }
-    
+
     private func styleInfoMenuItem(_ item: NSMenuItem) {
         let font = NSFont.systemFont(ofSize: 12, weight: .regular)
         let attributes: [NSAttributedString.Key: Any] = [
@@ -309,7 +309,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
         let attributedTitle = NSAttributedString(string: item.title, attributes: attributes)
         item.attributedTitle = attributedTitle
     }
-    
+
     private func styleSystemMenuItem(_ item: NSMenuItem) {
         let font = NSFont.systemFont(ofSize: 13, weight: .medium)
         let attributes: [NSAttributedString.Key: Any] = [
@@ -319,7 +319,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
         let attributedTitle = NSAttributedString(string: item.title, attributes: attributes)
         item.attributedTitle = attributedTitle
     }
-    
+
     private func styleDNSMenuItem(_ item: NSMenuItem) {
         let font = NSFont.systemFont(ofSize: 12, weight: .regular)
         let attributes: [NSAttributedString.Key: Any] = [
@@ -330,4 +330,4 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
         item.attributedTitle = attributedTitle
     }
 
-} 
+}

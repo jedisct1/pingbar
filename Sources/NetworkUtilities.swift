@@ -1,7 +1,7 @@
 import Foundation
 
 struct NetworkUtilities {
-    
+
     static func localInterfaceAddresses() -> [(String, String)] {
         var results: [(String, String)] = []
         var ifaddrPtr: UnsafeMutablePointer<ifaddrs>?

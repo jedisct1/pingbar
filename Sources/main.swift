@@ -3,4 +3,4 @@ import PingBarLib
 
 let delegate = AppDelegate()
 NSApplication.shared.delegate = delegate
-_ = NSApplicationMain(CommandLine.argc, CommandLine.unsafeArgv) 
+_ = NSApplicationMain(CommandLine.argc, CommandLine.unsafeArgv)

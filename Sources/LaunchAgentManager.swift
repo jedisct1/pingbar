@@ -1,7 +1,7 @@
 import Foundation
 
 struct LaunchAgentManager {
-    
+
     static func setLaunchAtLogin(enabled: Bool) {
         let fileManager = FileManager.default
         let label = "com.example.PingBar"

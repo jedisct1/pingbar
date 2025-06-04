@@ -1,7 +1,7 @@
 import Foundation
 
 struct DNSManager {
-    
+
     static let dnsNameMap: [String: String] = [
         "1.1.1.1": "Cloudflare",
         "8.8.8.8": "Google",
@@ -9,7 +9,7 @@ struct DNSManager {
         "127.0.0.1": "dnscrypt-proxy",
         "114.114.114.114": "114DNS"
     ]
-    
+
     static func setDNSWithOsascript(service: String, dnsArg: String) -> (success: Bool, message: String) {
         let dnsString = dnsArg == "Empty" ? "Empty" : dnsArg
         let command = "/usr/sbin/networksetup -setdnsservers \"\(service)\" \(dnsString)"
