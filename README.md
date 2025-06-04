@@ -4,9 +4,9 @@
 [![macOS](https://img.shields.io/badge/macOS-12.0+-green.svg)](https://www.apple.com/macos/)
 [![Swift](https://img.shields.io/badge/Swift-6.1-orange.svg)](https://swift.org)
 
-PingBar is a modern, native macOS menu bar app that continuously monitors your network connectivity and DNS settings.
+PingBar is a **lightweight**, modern, native macOS menu bar app that continuously monitors your network connectivity and DNS settings.
 
-It provides real-time ping statistics, network interface information, and DNS management, all from your menu bar.
+It provides real-time ping statistics, network interface information, and **one-click DNS management including dnscrypt-proxy control**, all from your menu bar with minimal system resource usage.
 
 ## Screenshots
 
@@ -38,11 +38,11 @@ The preferences window allows you to configure:
 - **Historical Ping Graph**: Unicode sparkline graph and statistics (avg/min/max) for recent pings.
 - **Network Interface Info**: Displays active local IP addresses with interface names.
 - **DNS Resolver Display**: Shows current DNS resolvers for your default interface.
-- **DNS Management**: Change DNS for your default interface with one click (System Default, Cloudflare, Google, Quad9, 114DNS, dnscrypt-proxy, etc.).
+- **DNS Management**: Change DNS for your default interface with one click (System Default, Cloudflare, Google, Quad9, 114DNS, dnscrypt-proxy, etc.). **Perfect for controlling dnscrypt-proxy usage from the menu bar.**
 - **Captive Portal Detection**: Detects captive portals and can auto-revert DNS to default, restoring your custom DNS after login.
 - **Preferences Dialog**: Configure ping interval, target host, high ping threshold, DNS auto-revert, and launch at login.
 - **Auto-Start**: Optionally launch PingBar at login using a LaunchAgent.
-- **macOS Native**: Built with Swift, AppKit, and SwiftPM. No Electron, no bloat.
+- **Lightweight & Native**: Built with Swift, AppKit, and SwiftPM. No Python or Electron, no bloat. Minimal memory footprint.
 
 ## Installation
 
@@ -67,6 +67,23 @@ cd pingbar
 ```
 
 The built app will appear as `PingBar.app` in the project directory.
+
+### Uninstall
+
+To completely remove PingBar from your system:
+
+1. **Quit PingBar**: Click the menu bar icon → "Quit PingBar"
+2. **Remove the app**: Drag `PingBar.app` to Trash (usually in `/Applications/` or wherever you placed it)
+3. **Remove launch agent** (if enabled):
+   ```sh
+   rm ~/Library/LaunchAgents/com.pingbar.app.plist
+   ```
+4. **Remove preferences** (optional):
+   ```sh
+   defaults delete com.pingbar.app
+   ```
+
+That's it! PingBar stores minimal data and leaves no background processes running.
 
 #### Development
 
@@ -116,7 +133,7 @@ PingBar provides one-click DNS switching for your default network interface:
 - **Google (8.8.8.8)**: Reliable public DNS
 - **Quad9 (9.9.9.9)**: Security-focused DNS with malware blocking
 - **114DNS (114.114.114.114)**: Popular DNS service in China
-- **dnscrypt-proxy (127.0.0.1)**: Local encrypted DNS proxy
+- **dnscrypt-proxy (127.0.0.1)**: **Local encrypted DNS proxy - easily toggle dnscrypt-proxy on/off from the menu bar**
 
 ⚠️ **Note**: DNS changes require administrator privileges. You'll be prompted for your password.
 
