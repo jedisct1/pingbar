@@ -10,6 +10,8 @@
     <string>1.0</string>
     <key>CFBundleShortVersionString</key>
     <string>1.0</string>
+    <key>CFBundleExecutable</key>
+    <string>PingBar</string>
     <key>LSUIElement</key>
     <true/>
     <key>NSPrincipalClass</key>
