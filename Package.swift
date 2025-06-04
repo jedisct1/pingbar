@@ -12,13 +12,20 @@ let package = Package(
         .executable(name: "PingBar", targets: ["PingBar"])
     ],
     targets: [
+        .target(
+            name: "PingBarLib",
+            path: "Sources",
+            exclude: ["main.swift"]
+        ),
         .executableTarget(
             name: "PingBar",
-            path: "Sources"
+            dependencies: ["PingBarLib"],
+            path: "Sources",
+            sources: ["main.swift"]
         ),
         .testTarget(
             name: "PingBarTests",
-            dependencies: ["PingBar"],
+            dependencies: ["PingBarLib"],
             path: "Tests"
         ),
     ]
