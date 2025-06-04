@@ -87,9 +87,6 @@ swift test
 # Create app bundle
 ./bundle_pingbar_app.sh
 
-# Sign and notarize (requires Apple Developer account)
-# Edit sign_and_notarize.sh with your credentials first
-./sign_and_notarize.sh
 ```
 
 ## Usage
