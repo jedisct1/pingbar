@@ -15,7 +15,15 @@ let package = Package(
         .target(
             name: "PingBarLib",
             path: "Sources",
-            exclude: ["main.swift"]
+            sources: [
+                "PingBarApp.swift",
+                "PingManager.swift",
+                "DNSManager.swift",
+                "NetworkUtilities.swift",
+                "PreferencesWindowController.swift",
+                "LaunchAgentManager.swift",
+                "SparklineRenderer.swift"
+            ]
         ),
         .executableTarget(
             name: "PingBar",
