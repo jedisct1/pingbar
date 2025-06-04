@@ -48,15 +48,12 @@ The preferences window allows you to configure:
 
 ### Homebrew (Recommended)
 
-Install PingBar using Homebrew:
+Install PingBar using Homebrew Cask:
 
 ```bash
-# Clone and install with Homebrew
 git clone https://github.com/jedisct1/pingbar.git
 cd pingbar
-brew install --build-from-source ./Formula/pingbar.rb
-
-# Launch PingBar (automatically installed to /Applications)
+brew install --cask ./Casks/pingbar.rb
 open /Applications/PingBar.app
 ```
 
@@ -87,7 +84,7 @@ See [INSTALL.md](INSTALL.md) for detailed installation instructions.
 
 #### Homebrew Installation
 ```bash
-brew uninstall pingbar
+brew uninstall --cask pingbar
 ```
 
 #### Manual Installation

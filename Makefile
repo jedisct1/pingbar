@@ -34,6 +34,14 @@ uninstall:
 archive: bundle
 	tar -czf pingbar-$(shell grep -A1 "CFBundleShortVersionString" Info.plist | grep -o '[0-9.]*').tar.gz PingBar.app
 
+# Homebrew installation
+homebrew:
+	brew install --cask ./Casks/pingbar.rb
+
+# Homebrew uninstall
+homebrew-uninstall:
+	brew uninstall --cask pingbar
+
 # Help target
 help:
 	@echo "Available targets:"
@@ -45,4 +53,6 @@ help:
 	@echo "  install       - Install to /Applications"
 	@echo "  uninstall     - Remove from /Applications"
 	@echo "  archive       - Create release archive"
+	@echo "  homebrew      - Install via Homebrew Cask"
+	@echo "  homebrew-uninstall - Uninstall Homebrew Cask"
 	@echo "  help          - Show this help message"

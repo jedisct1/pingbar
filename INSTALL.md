@@ -8,12 +8,12 @@
    cd pingbar
    ```
 
-2. Install using Homebrew:
+2. Install using Homebrew Cask:
    ```bash
-   brew install --build-from-source ./Formula/pingbar.rb
+   brew install --cask ./Casks/pingbar.rb
    ```
 
-3. Launch PingBar (automatically installed to `/Applications/PingBar.app`):
+3. Launch PingBar (automatically installed to `/Applications`):
    ```bash
    open /Applications/PingBar.app
    ```
@@ -83,7 +83,7 @@ For developers who want to work on PingBar:
 
 ### Homebrew
 ```bash
-brew uninstall pingbar
+brew uninstall --cask pingbar
 ```
 
 ### Manual
