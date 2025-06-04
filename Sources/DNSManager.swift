@@ -10,6 +10,44 @@ struct DNSManager {
         "114.114.114.114": "114DNS"
     ]
 
+    static func displayName(for dnsServer: String) -> String {
+        // Check if it's a predefined DNS server
+        if let name = dnsNameMap[dnsServer] {
+            return name
+        }
+
+        // Check if there's a custom DNS server configured
+        let customDNS = UserDefaults.standard.string(forKey: "CustomDNSServer") ?? ""
+        if !customDNS.isEmpty {
+            // If the custom DNS contains a space, treat it as "IP Name" format
+            let components = customDNS.components(separatedBy: " ")
+            if components.count >= 2 {
+                let ip = components[0]
+                let name = components.dropFirst().joined(separator: " ")
+                if dnsServer == ip {
+                    return name
+                }
+            } else if dnsServer == customDNS {
+                // If custom DNS is just an IP, return "Custom (IP)"
+                return "Custom (\(customDNS))"
+            }
+        }
+
+        // Default to returning the IP address itself
+        return dnsServer
+    }
+
+    static func getCustomDNSIP() -> String? {
+        let customDNS = UserDefaults.standard.string(forKey: "CustomDNSServer") ?? ""
+        if customDNS.isEmpty {
+            return nil
+        }
+
+        // If the custom DNS contains a space, extract the IP part
+        let components = customDNS.components(separatedBy: " ")
+        return components[0]
+    }
+
     static func setDNSWithOsascript(service: String, dnsArg: String) -> (success: Bool, message: String) {
         let dnsString = dnsArg == "Empty" ? "Empty" : dnsArg
         let command = "/usr/sbin/networksetup -setdnsservers \"\(service)\" \(dnsString)"

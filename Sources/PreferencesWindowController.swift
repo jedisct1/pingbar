@@ -4,10 +4,11 @@ class PreferencesViewController: NSViewController {
     let intervalField = NSTextField()
     let hostField = NSTextField()
     let highPingField = NSTextField()
+    let customDNSField = NSTextField()
     let revertDNSCheckbox = NSButton(checkboxWithTitle: "Revert DNS to System Default when network is unreachable", target: nil, action: nil)
     let restoreDNSCheckbox = NSButton(checkboxWithTitle: "Restore my custom DNS after passing captive portal", target: nil, action: nil)
     let launchAtLoginCheckbox = NSButton(checkboxWithTitle: "Launch PingBar at login", target: nil, action: nil)
-    var onSave: ((String, Double, Int, Bool, Bool, Bool) -> Void)?
+    var onSave: ((String, Double, Int, String, Bool, Bool, Bool) -> Void)?
 
     override func loadView() {
         let view = NSView()
@@ -42,15 +43,19 @@ class PreferencesViewController: NSViewController {
         let intervalLabel = NSTextField(labelWithString: "⏱ Ping interval (seconds):")
         let hostLabel = NSTextField(labelWithString: "🎯 Target host (URL):")
         let highPingLabel = NSTextField(labelWithString: "⚠️ High ping threshold (ms):")
+        let customDNSLabel = NSTextField(labelWithString: "🔧 Custom DNS (optional):")
         intervalLabel.alignment = .right
         hostLabel.alignment = .right
         highPingLabel.alignment = .right
+        customDNSLabel.alignment = .right
         intervalLabel.font = NSFont.systemFont(ofSize: 13, weight: .medium)
         hostLabel.font = NSFont.systemFont(ofSize: 13, weight: .medium)
         highPingLabel.font = NSFont.systemFont(ofSize: 13, weight: .medium)
+        customDNSLabel.font = NSFont.systemFont(ofSize: 13, weight: .medium)
         intervalLabel.textColor = NSColor.labelColor
         hostLabel.textColor = NSColor.labelColor
         highPingLabel.textColor = NSColor.labelColor
+        customDNSLabel.textColor = NSColor.labelColor
 
         // Fields with enhanced styling
         self.styleTextField(intervalField)
@@ -64,6 +69,10 @@ class PreferencesViewController: NSViewController {
         self.styleTextField(highPingField)
         highPingField.stringValue = String(UserDefaults.standard.integer(forKey: "HighPingThreshold") > 0 ? UserDefaults.standard.integer(forKey: "HighPingThreshold") : 200)
         highPingField.placeholderString = "e.g. 200"
+
+        self.styleTextField(customDNSField)
+        customDNSField.stringValue = UserDefaults.standard.string(forKey: "CustomDNSServer") ?? ""
+        customDNSField.placeholderString = "e.g. 1.1.1.1 or My Server"
 
         // Styled checkboxes
         self.styleCheckbox(revertDNSCheckbox)
@@ -107,10 +116,16 @@ class PreferencesViewController: NSViewController {
         highPingRow.spacing = 12
         highPingRow.alignment = .centerY
 
+        let customDNSRow = NSStackView(views: [customDNSLabel, customDNSField])
+        customDNSRow.orientation = .horizontal
+        customDNSRow.spacing = 12
+        customDNSRow.alignment = .centerY
+
         networkStack.addArrangedSubview(networkSectionLabel)
         networkStack.addArrangedSubview(intervalRow)
         networkStack.addArrangedSubview(hostRow)
         networkStack.addArrangedSubview(highPingRow)
+        networkStack.addArrangedSubview(customDNSRow)
 
         // DNS settings section
         let dnsStack = NSStackView()
@@ -164,9 +179,11 @@ class PreferencesViewController: NSViewController {
             intervalField.widthAnchor.constraint(equalToConstant: 220),
             hostField.widthAnchor.constraint(equalToConstant: 220),
             highPingField.widthAnchor.constraint(equalToConstant: 220),
+            customDNSField.widthAnchor.constraint(equalToConstant: 220),
             intervalLabel.widthAnchor.constraint(equalToConstant: 180),
             hostLabel.widthAnchor.constraint(equalToConstant: 180),
-            highPingLabel.widthAnchor.constraint(equalToConstant: 180)
+            highPingLabel.widthAnchor.constraint(equalToConstant: 180),
+            customDNSLabel.widthAnchor.constraint(equalToConstant: 180)
         ])
 
         revertDNSCheckbox.state = UserDefaults.standard.bool(forKey: "RevertDNSOnCaptivePortal") ? .on : .off
@@ -178,15 +195,46 @@ class PreferencesViewController: NSViewController {
         let interval = Double(intervalField.stringValue) ?? 5.0
         let host = hostField.stringValue
         let highPing = Int(highPingField.stringValue) ?? 200
+        let customDNS = customDNSField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Validate custom DNS if provided
+        if !customDNS.isEmpty {
+            let components = customDNS.components(separatedBy: " ")
+            let ipAddress = components[0]
+
+            // Basic IP address validation
+            if !isValidIPAddress(ipAddress) {
+                let alert = NSAlert()
+                alert.messageText = "Invalid DNS Server"
+                alert.informativeText = "Please enter a valid IP address for the custom DNS server. Examples:\n• 1.1.1.1\n• 8.8.8.8 Google\n• 192.168.1.1 Home Router"
+                alert.alertStyle = .warning
+                alert.runModal()
+                return
+            }
+        }
+
         let revertDNS = (revertDNSCheckbox.state == .on)
         let restoreDNS = (restoreDNSCheckbox.state == .on)
         let launchAtLogin = (launchAtLoginCheckbox.state == .on)
         UserDefaults.standard.set(highPing, forKey: "HighPingThreshold")
+        UserDefaults.standard.set(customDNS, forKey: "CustomDNSServer")
         UserDefaults.standard.set(revertDNS, forKey: "RevertDNSOnCaptivePortal")
         UserDefaults.standard.set(restoreDNS, forKey: "RestoreCustomDNSAfterCaptive")
         UserDefaults.standard.set(launchAtLogin, forKey: "LaunchAtLogin")
-        onSave?(host, interval, highPing, revertDNS, restoreDNS, launchAtLogin)
+        onSave?(host, interval, highPing, customDNS, revertDNS, restoreDNS, launchAtLogin)
         self.view.window?.close()
+    }
+
+    private func isValidIPAddress(_ ip: String) -> Bool {
+        let parts = ip.components(separatedBy: ".")
+        guard parts.count == 4 else { return false }
+
+        for part in parts {
+            guard let number = Int(part), number >= 0 && number <= 255 else {
+                return false
+            }
+        }
+        return true
     }
 
     @objc func cancelClicked() {
@@ -244,7 +292,7 @@ class PreferencesViewController: NSViewController {
 }
 
 class PreferencesWindowController: NSWindowController {
-    convenience init(onSave: @escaping (String, Double, Int, Bool, Bool, Bool) -> Void) {
+    convenience init(onSave: @escaping (String, Double, Int, String, Bool, Bool, Bool) -> Void) {
         let vc = PreferencesViewController()
         vc.onSave = onSave
         let window = NSWindow(contentViewController: vc)

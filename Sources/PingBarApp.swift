@@ -141,7 +141,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
             ipMenuItems.append(sep)
             insertIndex += 1
             for (idx, dns) in dnsResolvers.enumerated() {
-                let display = DNSManager.dnsNameMap[dns] ?? dns
+                let display = DNSManager.displayName(for: dns)
                 let dnsItem = NSMenuItem(title: "🔍 DNS: \(display)", action: nil, keyEquivalent: "")
                 self.styleInfoMenuItem(dnsItem)
                 menu.insertItem(dnsItem, at: insertIndex + idx)
@@ -161,6 +161,14 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
             ("🛡 Quad9 (9.9.9.9)", "9.9.9.9"),
             ("🌏 114DNS (114.114.114.114)", "114.114.114.114")
         ]
+
+        // Add custom DNS if configured
+        if let customDNSIP = DNSManager.getCustomDNSIP() {
+            let displayName = DNSManager.displayName(for: customDNSIP)
+            let menuTitle = "⚙️ \(displayName) (\(customDNSIP))"
+            dnsOptions.append((menuTitle, customDNSIP))
+        }
+
         let systemDefault = dnsOptions.removeFirst()
         let dnscryptProxy = dnsOptions.removeFirst()
         dnsOptions.sort { $0.0.localizedCaseInsensitiveCompare($1.0) == .orderedAscending }
@@ -184,10 +192,11 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
     @MainActor
     @objc private func showPreferences(_ sender: Any?) {
         if preferencesWindow == nil {
-            preferencesWindow = PreferencesWindowController { [weak self] host, interval, highPing, revertDNS, restoreDNS, launchAtLogin in
+            preferencesWindow = PreferencesWindowController { [weak self] host, interval, highPing, customDNS, revertDNS, restoreDNS, launchAtLogin in
                 UserDefaults.standard.set(interval, forKey: "PingInterval")
                 UserDefaults.standard.set(host, forKey: "PingHost")
                 UserDefaults.standard.set(highPing, forKey: "HighPingThreshold")
+                UserDefaults.standard.set(customDNS, forKey: "CustomDNSServer")
                 UserDefaults.standard.set(revertDNS, forKey: "RevertDNSOnCaptivePortal")
                 UserDefaults.standard.set(restoreDNS, forKey: "RestoreCustomDNSAfterCaptive")
                 UserDefaults.standard.set(launchAtLogin, forKey: "LaunchAtLogin")
