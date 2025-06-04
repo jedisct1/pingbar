@@ -1,7 +1,7 @@
 class Pingbar < Formula
   desc "macOS menu bar application for network connectivity monitoring and DNS management"
   homepage "https://github.com/jedisct1/pingbar"
-  url "file://#{__dir__}/../", using: :git
+  url "file://#{__dir__}/../", using: :git, branch: "main"
   version "HEAD"
   license "MIT"
 
