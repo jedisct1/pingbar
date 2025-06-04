@@ -15,7 +15,13 @@ let package = Package(
         .target(
             name: "PingBarLib",
             path: "Sources",
-            sources: [
+            exclude: ["main.swift"]
+        ),
+        .executableTarget(
+            name: "PingBar",
+            dependencies: ["PingBarLib"],
+            path: "Sources",
+            exclude: [
                 "PingBarApp.swift",
                 "PingManager.swift",
                 "DNSManager.swift",
@@ -23,12 +29,7 @@ let package = Package(
                 "PreferencesWindowController.swift",
                 "LaunchAgentManager.swift",
                 "SparklineRenderer.swift"
-            ]
-        ),
-        .executableTarget(
-            name: "PingBar",
-            dependencies: ["PingBarLib"],
-            path: "Sources",
+            ],
             sources: ["main.swift"]
         ),
         .testTarget(
