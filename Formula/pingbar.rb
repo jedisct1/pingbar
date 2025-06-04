@@ -1,8 +1,8 @@
 class Pingbar < Formula
   desc "macOS menu bar application for network connectivity monitoring and DNS management"
   homepage "https://github.com/jedisct1/pingbar"
-  url "https://github.com/jedisct1/pingbar/archive/refs/tags/v1.0.0.tar.gz"
-  sha256 "YOUR_SHA256_HERE"
+  url "file://#{__dir__}/../", using: :git
+  version "HEAD"
   license "MIT"
 
   depends_on "swift" => :build

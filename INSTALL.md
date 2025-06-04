@@ -2,42 +2,22 @@
 
 ## Homebrew Installation (Recommended)
 
-### Install from Official Tap
-
-```bash
-# Add the PingBar tap
-brew tap jedisct1/pingbar
-
-# Install PingBar (automatically installs to /Applications)
-brew install pingbar
-
-# Launch PingBar
-open /Applications/PingBar.app
-```
-
-**One-command installation:**
-```bash
-brew tap jedisct1/pingbar && brew install pingbar && open /Applications/PingBar.app
-```
-
-### Alternative: Install from Local Formula
-
-If you want to build from source locally:
-
 1. Clone this repository:
    ```bash
    git clone https://github.com/jedisct1/pingbar.git
    cd pingbar
    ```
 
-2. Install using the local formula:
+2. Install using Homebrew:
    ```bash
    brew install --build-from-source ./Formula/pingbar.rb
    ```
 
-3. The app will be installed to `/Applications/PingBar.app`
+3. Launch PingBar (automatically installed to `/Applications/PingBar.app`):
+   ```bash
+   open /Applications/PingBar.app
+   ```
 
-4. Launch PingBar from Applications or Spotlight
 
 ## Manual Installation
 
@@ -104,8 +84,6 @@ For developers who want to work on PingBar:
 ### Homebrew
 ```bash
 brew uninstall pingbar
-brew untap jedisct1/pingbar  # Optional: remove the tap
-rm -rf /Applications/PingBar.app
 ```
 
 ### Manual

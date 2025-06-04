@@ -48,20 +48,16 @@ The preferences window allows you to configure:
 
 ### Homebrew (Recommended)
 
-Install PingBar using our official Homebrew tap:
+Install PingBar using Homebrew:
 
 ```bash
-# Add the tap and install PingBar
-brew tap jedisct1/pingbar
-brew install pingbar
+# Clone and install with Homebrew
+git clone https://github.com/jedisct1/pingbar.git
+cd pingbar
+brew install --build-from-source ./Formula/pingbar.rb
 
 # Launch PingBar (automatically installed to /Applications)
 open /Applications/PingBar.app
-```
-
-**One-command installation:**
-```bash
-brew tap jedisct1/pingbar && brew install pingbar && open /Applications/PingBar.app
 ```
 
 ### Download
@@ -92,7 +88,6 @@ See [INSTALL.md](INSTALL.md) for detailed installation instructions.
 #### Homebrew Installation
 ```bash
 brew uninstall pingbar
-brew untap jedisct1/pingbar  # Optional: remove the tap
 ```
 
 #### Manual Installation
