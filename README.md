@@ -59,7 +59,7 @@ open /Applications/PingBar.app
 
 ### Download
 
-Download the latest release from the [Releases](https://github.com/jedisct1/pingbar/releases) page.
+Download the latest release from the [Releases](https://github.com/jedisct1/pingbar/releases) page. Pre-built binaries are available for both Intel and Apple Silicon Macs.
 
 ### Build from Source
 
