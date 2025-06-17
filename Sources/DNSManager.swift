@@ -52,21 +52,37 @@ struct DNSManager {
         let dnsString = dnsArg == "Empty" ? "Empty" : dnsArg
         let command = "/usr/sbin/networksetup -setdnsservers \"\(service)\" \(dnsString)"
         let escapedCommand = escapeForAppleScript(command)
-        let script = "do shell script \"\(escapedCommand)\" with administrator privileges"
+        
+        // Create a descriptive prompt for the authorization dialog
+        let dnsDescription = dnsArg == "Empty" ? "System Default" : displayName(for: dnsArg)
+        let promptMessage = "PingBar is changing DNS settings for \(service) to \(dnsDescription)"
+        
+        // Use the prompt parameter in the do shell script command
+        let promptScript = """
+        do shell script "\(escapedCommand)" with administrator privileges with prompt "\(promptMessage)"
+        """
+        
         let task = Process()
         task.launchPath = "/usr/bin/osascript"
-        task.arguments = ["-e", script]
+        task.arguments = ["-e", promptScript]
+        
         let pipe = Pipe()
         task.standardOutput = pipe
         task.standardError = pipe
+        
         task.launch()
         task.waitUntilExit()
+        
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         let output = String(data: data, encoding: .utf8) ?? ""
+        
         if task.terminationStatus == 0 {
-            return (true, output)
+            return (true, "DNS settings updated")
         } else {
-            return (false, output.isEmpty ? "Unknown error. You may need to enter your password or run the app as an administrator." : output)
+            if output.contains("User cancelled") || output.contains("canceled") {
+                return (false, "Operation cancelled by user")
+            }
+            return (false, output.isEmpty ? "Failed to update DNS settings" : output)
         }
     }
 
