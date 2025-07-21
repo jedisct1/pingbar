@@ -73,7 +73,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
             case .good, .warning:
                 self.updateStatusIndicator(status)
                 if self.dnsRevertedForOutage, restoreDNS, let custom = self.customDNSBeforeCaptive, custom != "Empty" {
-                    if let iface = NetworkUtilities.defaultInterface, let service = NetworkUtilities.networkServiceName(for: iface) {
+                    if let iface = NetworkUtilities.defaultInterface(), let service = NetworkUtilities.networkServiceName(for: iface) {
                         _ = DNSManager.setDNSWithOsascript(service: service, dnsArg: custom)
                         self.dnsRevertedForOutage = false
                         self.customDNSBeforeCaptive = nil
@@ -84,7 +84,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
             case .bad:
                 self.updateStatusIndicator(.bad)
                 if revertDNS, !self.dnsRevertedForOutage {
-                    if let iface = NetworkUtilities.defaultInterface, let service = NetworkUtilities.networkServiceName(for: iface) {
+                    if let iface = NetworkUtilities.defaultInterface(), let service = NetworkUtilities.networkServiceName(for: iface) {
                         let lastCustom = UserDefaults.standard.string(forKey: "LastCustomDNS")
                         self.customDNSBeforeCaptive = (lastCustom != "Empty") ? lastCustom : nil
                         _ = DNSManager.setDNSWithOsascript(service: service, dnsArg: "Empty")
@@ -228,7 +228,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
     @MainActor
     @objc private func setDNS(_ sender: NSMenuItem) {
         guard let ip = sender.representedObject as? String? else { return }
-        guard let iface = NetworkUtilities.defaultInterface, let service = NetworkUtilities.networkServiceName(for: iface) else { return }
+        guard let iface = NetworkUtilities.defaultInterface(), let service = NetworkUtilities.networkServiceName(for: iface) else { return }
         let dnsArg = ip ?? "Empty"
         if dnsArg != "Empty" {
             UserDefaults.standard.set(dnsArg, forKey: "LastCustomDNS")
