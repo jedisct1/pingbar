@@ -83,53 +83,23 @@ struct NetworkUtilities {
     }
 
     static var defaultInterface: String? {
-        // Get the actual default route interface using the route command
-        let task = Process()
-        let pipe = Pipe()
-        task.launchPath = "/sbin/route"
-        task.arguments = ["-n", "get", "default"]
-        task.standardOutput = pipe
-        task.standardError = pipe
-        
-        do {
-            try task.run()
-            task.waitUntilExit()
-            
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            guard let output = String(data: data, encoding: .utf8) else { return nil }
-            
-            // Parse the output to find the interface line
-            let lines = output.components(separatedBy: .newlines)
-            for line in lines {
-                let trimmed = line.trimmingCharacters(in: .whitespaces)
-                if trimmed.hasPrefix("interface:") {
-                    let components = trimmed.components(separatedBy: ":")
-                    if components.count >= 2 {
-                        return components[1].trimmingCharacters(in: .whitespaces)
-                    }
-                }
+        var ifaddrPtr: UnsafeMutablePointer<ifaddrs>?
+        guard getifaddrs(&ifaddrPtr) == 0, let firstAddr = ifaddrPtr else { return nil }
+        defer { freeifaddrs(firstAddr) }
+        var ptr = firstAddr
+        while true {
+            let flags = Int32(ptr.pointee.ifa_flags)
+            let addr = ptr.pointee.ifa_addr.pointee
+            let name = String(cString: ptr.pointee.ifa_name)
+            if (flags & IFF_UP) == IFF_UP && (flags & IFF_LOOPBACK) == 0 && addr.sa_family == UInt8(AF_INET) {
+                return name
             }
-        } catch {
-            // Fall back to the old method if route command fails
-            var ifaddrPtr: UnsafeMutablePointer<ifaddrs>?
-            guard getifaddrs(&ifaddrPtr) == 0, let firstAddr = ifaddrPtr else { return nil }
-            defer { freeifaddrs(firstAddr) }
-            var ptr = firstAddr
-            while true {
-                let flags = Int32(ptr.pointee.ifa_flags)
-                let addr = ptr.pointee.ifa_addr.pointee
-                let name = String(cString: ptr.pointee.ifa_name)
-                if (flags & IFF_UP) == IFF_UP && (flags & IFF_LOOPBACK) == 0 && addr.sa_family == UInt8(AF_INET) {
-                    return name
-                }
-                if let next = ptr.pointee.ifa_next {
-                    ptr = next
-                } else {
-                    break
-                }
+            if let next = ptr.pointee.ifa_next {
+                ptr = next
+            } else {
+                break
             }
         }
-        
         return nil
     }
 
