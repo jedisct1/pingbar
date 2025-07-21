@@ -43,85 +43,93 @@ struct NetworkUtilities {
     private static func isRoutableIPv4(_ addr: in_addr) -> Bool {
         let ip = UInt32(bigEndian: addr.s_addr)
         if ip == 0 { return false }
-        if (ip & 0xff000000) == 0x7f000000 { return false }
-        if (ip & 0xffff0000) == 0xa9fe0000 { return false }
-        if (ip & 0xf0000000) == 0xe0000000 { return false }
-        if ip == 0xffffffff { return false }
         return true
     }
 
     private static func isRoutableIPv6(_ addr: in6_addr) -> Bool {
-        let addrBytes = withUnsafeBytes(of: addr) { Array($0) }
-        if addrBytes.allSatisfy({ $0 == 0 }) { return false }
-        if addrBytes[0] == 0 && addrBytes[15] == 1 && addrBytes[1...14].allSatisfy({ $0 == 0 }) { return false }
-        if addrBytes[0] == 0xfe && (addrBytes[1] & 0xc0) == 0x80 { return false }
-        if addrBytes[0] == 0xff { return false }
-        return true
+        let addrBytes = Mirror(reflecting: addr.__u6_addr.__u6_addr8).children.map { $0.value as! UInt8 }
+        return !addrBytes.starts(with: [0xfe, 0x80]) // link-local
     }
 
     static func currentDNSResolvers() -> [String] {
         var resolvers: [String] = []
-        guard let file = fopen("/etc/resolv.conf", "r") else { return resolvers }
-        defer { fclose(file) }
-        var linePtr: UnsafeMutablePointer<CChar>?
-        var n: size_t = 0
-        while getline(&linePtr, &n, file) > 0 {
-            if let line = linePtr {
-                let str = String(cString: line).trimmingCharacters(in: .whitespacesAndNewlines)
-                if str.hasPrefix("nameserver ") {
-                    let parts = str.components(separatedBy: .whitespaces)
-                    if parts.count > 1 {
+
+        if let file = fopen("/etc/resolv.conf", "r") {
+            defer { fclose(file) }
+            var line: UnsafeMutablePointer<CChar>?
+            var linecap: Int = 0
+            var buffer: UnsafeMutablePointer<CChar>? = nil
+            while getline(&buffer, &linecap, file) > 0 {
+                line = buffer
+                if let lineStr = line.flatMap({ String(cString: $0).trimmingCharacters(in: .whitespacesAndNewlines) }),
+                   lineStr.hasPrefix("nameserver") {
+                    let parts = lineStr.components(separatedBy: .whitespaces)
+                    if parts.count >= 2 {
                         resolvers.append(parts[1])
                     }
                 }
             }
+            free(buffer)
         }
-        if let linePtr = linePtr {
-            free(linePtr)
-        }
+
         return resolvers
     }
 
-    static var defaultInterface: String? {
-        var ifaddrPtr: UnsafeMutablePointer<ifaddrs>?
-        guard getifaddrs(&ifaddrPtr) == 0, let firstAddr = ifaddrPtr else { return nil }
-        defer { freeifaddrs(firstAddr) }
-        var ptr = firstAddr
-        while true {
-            let flags = Int32(ptr.pointee.ifa_flags)
-            let addr = ptr.pointee.ifa_addr.pointee
-            let name = String(cString: ptr.pointee.ifa_name)
-            if (flags & IFF_UP) == IFF_UP && (flags & IFF_LOOPBACK) == 0 && addr.sa_family == UInt8(AF_INET) {
-                return name
-            }
-            if let next = ptr.pointee.ifa_next {
-                ptr = next
-            } else {
-                break
-            }
-        }
+static func networkServiceName(for interface: String) -> String? {
+    let task = Process()
+    task.executableURL = URL(fileURLWithPath: "/usr/sbin/networksetup")
+    task.arguments = ["-listnetworkserviceorder"]
+
+    let pipe = Pipe()
+    task.standardOutput = pipe
+    task.standardError = pipe
+
+    do {
+        try task.run()
+    } catch {
+        print("Failed to run networksetup: \(error)")
         return nil
     }
 
-    static func networkServiceName(for bsdName: String) -> String? {
-        let task = Process()
+    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+    guard let output = String(data: data, encoding: .utf8) else { return nil }
+
+    // Regex to match: (n) Service Name (Hardware Port: ..., Device: enX)
+    let pattern = #"^\(\d+\)\s(.+?)\s+\(Hardware Port:.*?, Device: \b\#(interface)\b\)"#
+    let regex = try? NSRegularExpression(pattern: pattern, options: [.anchorsMatchLines])
+
+    if let match = regex?.firstMatch(in: output, range: NSRange(location: 0, length: output.utf16.count)),
+       let range = Range(match.range(at: 1), in: output) {
+        return String(output[range])
+    }
+
+    return nil
+}
+
+    static func defaultInterface() -> String? {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/sbin/netstat")
+        process.arguments = ["-rn"]
+
         let pipe = Pipe()
-        task.launchPath = "/usr/sbin/networksetup"
-        task.arguments = ["-listallhardwareports"]
-        task.standardOutput = pipe
-        task.launch()
-        task.waitUntilExit()
+        process.standardOutput = pipe
+        process.standardError = pipe
+
+        do {
+            try process.run()
+        } catch {
+            print("Failed to run netstat: \(error)")
+            return nil
+        }
+
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         guard let output = String(data: data, encoding: .utf8) else { return nil }
-        let lines = output.components(separatedBy: .newlines)
-        var currentService: String?
-        for line in lines {
-            if line.hasPrefix("Hardware Port: ") {
-                currentService = line.replacingOccurrences(of: "Hardware Port: ", with: "")
-            } else if line.hasPrefix("Device: ") {
-                let dev = line.replacingOccurrences(of: "Device: ", with: "")
-                if dev == bsdName, let svc = currentService {
-                    return svc
+
+        for line in output.components(separatedBy: "\n") {
+            if line.starts(with: "default") {
+                let components = line.split(separator: " ", omittingEmptySubsequences: true)
+                if let iface = components.last {
+                    return String(iface)
                 }
             }
         }
