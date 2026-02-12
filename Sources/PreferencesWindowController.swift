@@ -269,7 +269,7 @@ class PreferencesViewController: NSViewController {
         button.controlSize = .regular
 
         if isPrimary {
-            button.keyEquivalent = "\\r"
+            button.keyEquivalent = "\r"
         }
 
         button.wantsLayer = true

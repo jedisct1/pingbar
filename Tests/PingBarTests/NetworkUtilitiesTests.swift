@@ -31,17 +31,17 @@ final class NetworkUtilitiesTests: XCTestCase {
     }
     
     func testDefaultInterface() {
-        let defaultInterface = NetworkUtilities.defaultInterface
-        
+        let defaultInterface = NetworkUtilities.defaultInterface()
+
         // May be nil if no network interface is up
         if let interface = defaultInterface {
             XCTAssertFalse(interface.isEmpty)
         }
     }
-    
+
     func testNetworkServiceName() {
         // This test requires a real network interface to be present
-        if let defaultInterface = NetworkUtilities.defaultInterface {
+        if let defaultInterface = NetworkUtilities.defaultInterface() {
             let serviceName = NetworkUtilities.networkServiceName(for: defaultInterface)
             
             if let name = serviceName {

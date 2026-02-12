@@ -8,12 +8,18 @@ final class PingManagerTests: XCTestCase {
     
     override func setUp() {
         super.setUp()
+        UserDefaults.standard.removeObject(forKey: "HighPingThreshold")
+        UserDefaults.standard.removeObject(forKey: "PingHost")
+        UserDefaults.standard.removeObject(forKey: "PingInterval")
         pingManager = PingManager()
     }
-    
+
     override func tearDown() {
         pingManager.stop()
         pingManager = nil
+        UserDefaults.standard.removeObject(forKey: "HighPingThreshold")
+        UserDefaults.standard.removeObject(forKey: "PingHost")
+        UserDefaults.standard.removeObject(forKey: "PingInterval")
         super.tearDown()
     }
     

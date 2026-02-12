@@ -55,9 +55,8 @@ struct DNSManager {
         
         // Create a descriptive prompt for the authorization dialog
         let dnsDescription = dnsArg == "Empty" ? "System Default" : displayName(for: dnsArg)
-        let promptMessage = "PingBar is changing DNS settings for \(service) to \(dnsDescription)"
-        
-        // Use the prompt parameter in the do shell script command
+        let promptMessage = escapeForAppleScript("PingBar is changing DNS settings for \(service) to \(dnsDescription)")
+
         let promptScript = """
         do shell script "\(escapedCommand)" with administrator privileges with prompt "\(promptMessage)"
         """

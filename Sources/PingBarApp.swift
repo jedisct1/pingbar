@@ -119,6 +119,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
             insertIndex += 1
             let sep = NSMenuItem.separator()
             menu.insertItem(sep, at: insertIndex)
+            ipMenuItems.append(sep)
             insertIndex += 1
         }
         let ifaces = NetworkUtilities.localInterfaceAddresses()
