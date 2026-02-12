@@ -74,7 +74,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
                 self.updateStatusIndicator(status)
                 if self.dnsRevertedForOutage, restoreDNS, let custom = self.customDNSBeforeCaptive, custom != "Empty" {
                     if let iface = NetworkUtilities.defaultInterface(), let service = NetworkUtilities.networkServiceName(for: iface) {
-                        _ = DNSManager.setDNSWithOsascript(service: service, dnsArg: custom)
+                        _ = DNSManager.setDNS(service: service, dnsArg: custom)
                         self.dnsRevertedForOutage = false
                         self.customDNSBeforeCaptive = nil
                     }
@@ -87,7 +87,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
                     if let iface = NetworkUtilities.defaultInterface(), let service = NetworkUtilities.networkServiceName(for: iface) {
                         let lastCustom = UserDefaults.standard.string(forKey: "LastCustomDNS")
                         self.customDNSBeforeCaptive = (lastCustom != "Empty") ? lastCustom : nil
-                        _ = DNSManager.setDNSWithOsascript(service: service, dnsArg: "Empty")
+                        _ = DNSManager.setDNS(service: service, dnsArg: "Empty")
                         self.dnsRevertedForOutage = true
                     }
                 }
@@ -236,7 +236,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
         } else {
             UserDefaults.standard.removeObject(forKey: "LastCustomDNS")
         }
-        let status = DNSManager.setDNSWithOsascript(service: service, dnsArg: dnsArg)
+        let status = DNSManager.setDNS(service: service, dnsArg: dnsArg)
         if !status.success {
             let alert = NSAlert()
             alert.messageText = "Failed to change DNS settings"

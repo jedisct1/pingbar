@@ -16,7 +16,7 @@ final class DNSManagerTests: XCTestCase {
         XCTAssertNil(DNSManager.dnsNameMap["unknown.dns"])
     }
     
-    // Note: We don't test setDNSWithOsascript here as it requires:
+    // Note: We don't test setDNS here as it requires:
     // 1. Administrator privileges
     // 2. Actual system modification
     // 3. AppleScript execution

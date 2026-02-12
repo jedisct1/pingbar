@@ -48,41 +48,90 @@ struct DNSManager {
         return components[0]
     }
 
-    static func setDNSWithOsascript(service: String, dnsArg: String) -> (success: Bool, message: String) {
+    static func setDNS(service: String, dnsArg: String) -> (success: Bool, message: String) {
         let dnsString = dnsArg == "Empty" ? "Empty" : dnsArg
-        let command = "/usr/sbin/networksetup -setdnsservers \"\(service)\" \(dnsString)"
-        let escapedCommand = escapeForAppleScript(command)
-        
-        // Create a descriptive prompt for the authorization dialog
-        let dnsDescription = dnsArg == "Empty" ? "System Default" : displayName(for: dnsArg)
-        let promptMessage = escapeForAppleScript("PingBar is changing DNS settings for \(service) to \(dnsDescription)")
 
-        let promptScript = """
-        do shell script "\(escapedCommand)" with administrator privileges with prompt "\(promptMessage)"
-        """
-        
+        let result = runNetworkSetup(service: service, dnsString: dnsString)
+        if result.success {
+            return result
+        }
+
+        let needsPrivileges = result.message.contains("requires") ||
+            result.message.contains("permission") ||
+            result.message.contains("not allowed") ||
+            result.message.contains("Operation not permitted")
+        if !needsPrivileges {
+            return result
+        }
+
+        return runNetworkSetupPrivileged(service: service, dnsString: dnsString)
+    }
+
+    private static func runNetworkSetup(service: String, dnsString: String) -> (success: Bool, message: String) {
         let task = Process()
-        task.launchPath = "/usr/bin/osascript"
-        task.arguments = ["-e", promptScript]
-        
+        task.executableURL = URL(fileURLWithPath: "/usr/sbin/networksetup")
+        task.arguments = ["-setdnsservers", service, dnsString]
+
         let pipe = Pipe()
         task.standardOutput = pipe
         task.standardError = pipe
-        
-        task.launch()
+
+        do {
+            try task.run()
+        } catch {
+            return (false, error.localizedDescription)
+        }
         task.waitUntilExit()
-        
+
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        let output = String(data: data, encoding: .utf8) ?? ""
-        
+        let output = (String(data: data, encoding: .utf8) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+
         if task.terminationStatus == 0 {
             return (true, "DNS settings updated")
-        } else {
-            if output.contains("User cancelled") || output.contains("canceled") {
-                return (false, "Operation cancelled by user")
-            }
-            return (false, output.isEmpty ? "Failed to update DNS settings" : output)
         }
+        return (false, output.isEmpty ? "Failed to update DNS settings" : output)
+    }
+
+    private static func runNetworkSetupPrivileged(service: String, dnsString: String) -> (success: Bool, message: String) {
+        let command = "/usr/sbin/networksetup -setdnsservers \(shellQuote(service)) \(shellQuote(dnsString))"
+        let escapedCommand = escapeForAppleScript(command)
+
+        let dnsDescription = dnsString == "Empty" ? "System Default" : displayName(for: dnsString)
+        let escapedPrompt = escapeForAppleScript("PingBar needs administrator privileges to change DNS for \(service) to \(dnsDescription)")
+
+        let script = """
+        do shell script "\(escapedCommand)" with administrator privileges with prompt "\(escapedPrompt)"
+        """
+
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        task.arguments = ["-e", script]
+
+        let pipe = Pipe()
+        task.standardOutput = pipe
+        task.standardError = pipe
+
+        do {
+            try task.run()
+        } catch {
+            return (false, error.localizedDescription)
+        }
+        task.waitUntilExit()
+
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        let output = String(data: data, encoding: .utf8) ?? ""
+
+        if task.terminationStatus == 0 {
+            return (true, "DNS settings updated")
+        }
+        if output.contains("User cancelled") || output.contains("canceled") {
+            return (false, "Operation cancelled by user")
+        }
+        return (false, output.isEmpty ? "Failed to update DNS settings" : output)
+    }
+
+    private static func shellQuote(_ str: String) -> String {
+        "'" + str.replacingOccurrences(of: "'", with: "'\\''") + "'"
     }
 
     private static func escapeForAppleScript(_ str: String) -> String {
