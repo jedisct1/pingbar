@@ -1,4 +1,4 @@
-.PHONY: build build-release test bundle clean install uninstall archive
+.PHONY: build build-release test bundle clean install uninstall archive package-release
 
 # Default target
 build:
@@ -31,8 +31,11 @@ uninstall:
 	rm -rf /Applications/PingBar.app
 
 # Create release archive for Homebrew
-archive: bundle
-	tar -czf pingbar-$(shell grep -A1 "CFBundleShortVersionString" Info.plist | grep -o '[0-9.]*').tar.gz PingBar.app
+archive: package-release
+
+# Create a universal release archive
+package-release:
+	./package_release.sh
 
 # Homebrew installation
 homebrew:
@@ -52,7 +55,8 @@ help:
 	@echo "  clean         - Clean build artifacts"
 	@echo "  install       - Install to /Applications"
 	@echo "  uninstall     - Remove from /Applications"
-	@echo "  archive       - Create release archive"
+	@echo "  archive       - Create universal release archive"
+	@echo "  package-release - Build universal release archive"
 	@echo "  homebrew      - Install via Homebrew Cask"
 	@echo "  homebrew-uninstall - Uninstall Homebrew Cask"
 	@echo "  help          - Show this help message"

@@ -18,11 +18,18 @@ cask "pingbar" do
   app "PingBar.app"
 
   zap trash: [
-    "~/Library/LaunchAgents/com.pingbar.app.plist",
     "~/Library/Preferences/com.pingbar.app.plist",
+    "~/Library/LaunchAgents/com.pingbar.app.plist",
   ]
 
   caveats <<~EOS
-    DNS changes require administrator privileges.
+    PingBar has been installed to /Applications/PingBar.app
+
+    To launch PingBar:
+      open /Applications/PingBar.app
+
+    On first launch:
+      - Grant necessary permissions when prompted
+      - DNS changes require admin privileges
   EOS
 end

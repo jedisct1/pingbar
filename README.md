@@ -48,18 +48,23 @@ The preferences window allows you to configure:
 
 ### Homebrew (Recommended)
 
-Install PingBar using Homebrew Cask:
+Install PingBar using the PingBar tap:
 
 ```bash
-git clone https://github.com/jedisct1/pingbar.git
-cd pingbar
-brew install --cask ./Casks/pingbar.rb
+brew tap jedisct1/pingbar
+brew install --cask pingbar
+```
+
+Then launch from Applications, Spotlight, or:
+```bash
 open /Applications/PingBar.app
 ```
 
+An official `homebrew/homebrew-cask` submission is also prepared in this repository, but acceptance depends on Homebrew review.
+
 ### Download
 
-Download the latest release from the [Releases](https://github.com/jedisct1/pingbar/releases) page. Pre-built binaries are available for both Intel and Apple Silicon Macs.
+Download the latest release from the [Releases](https://github.com/jedisct1/pingbar/releases) page. Release archives contain a universal `PingBar.app` for both Intel and Apple Silicon Macs.
 
 ### Build from Source
 
