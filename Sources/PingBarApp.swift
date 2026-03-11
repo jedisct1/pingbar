@@ -7,12 +7,16 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
     private var statusItem: NSStatusItem?
     private var pingManager: PingManager!
     private var pingMenuItem: NSMenuItem?
+    private var packetLossMenuItem: NSMenuItem?
     private var preferencesWindow: PreferencesWindowController?
+    private var preferencesMenuItem: NSMenuItem?
     private var ipMenuItems: [NSMenuItem] = []
     private var dnsMenuItem: NSMenuItem?
     private var dnsRevertedForOutage = false
     private var customDNSBeforeCaptive: String?
     private var graphMenuItem: NSMenuItem?
+    private var latestLatencyMs: Int?
+    private var latestPingStatus: PingManager.PingStatus = .bad
 
     nonisolated public override init() {
         super.init()
@@ -22,7 +26,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
         pingManager = PingManager()
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         setupStatusButton()
-        updateStatusIndicator(.bad)
+        renderIcon()
 
         let menu = NSMenu()
         menu.delegate = self
@@ -34,6 +38,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
         let graphItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
         self.styleGraphMenuItem(graphItem)
         menu.addItem(graphItem)
+
+        let lossItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+        self.styleGraphMenuItem(lossItem)
+        menu.addItem(lossItem)
 
         menu.addItem(.separator())
 
@@ -49,11 +57,17 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
         statusItem?.menu = menu
         self.pingMenuItem = pingItem
         self.graphMenuItem = graphItem
+        self.packetLossMenuItem = lossItem
+        self.preferencesMenuItem = prefsItem
+        self.graphMenuItem?.isHidden = true
+        self.packetLossMenuItem?.isHidden = true
 
-        pingManager.onPingResult = { [weak self] status, result in
+        pingManager.onPingResult = { [weak self] result in
             guard let self else { return }
-            let revertDNS = UserDefaults.standard.bool(forKey: "RevertDNSOnCaptivePortal")
-            let restoreDNS = UserDefaults.standard.bool(forKey: "RestoreCustomDNSAfterCaptive")
+            let revertDNS = UserDefaults.standard.bool(forKey: UserDefaultsKey.revertDNSOnCaptivePortal)
+            let restoreDNS = UserDefaults.standard.bool(forKey: UserDefaultsKey.restoreCustomDNSAfterCaptive)
+            self.latestPingStatus = result.status
+            self.latestLatencyMs = result.latencyMs
             let pings = self.pingManager.recentPings
             if !pings.isEmpty {
                 let spark = SparklineRenderer.renderSparkline(pings: pings)
@@ -69,9 +83,8 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
                 self.graphMenuItem?.title = ""
                 self.graphMenuItem?.isHidden = true
             }
-            switch status {
+            switch result.status {
             case .good, .warning:
-                self.updateStatusIndicator(status)
                 if self.dnsRevertedForOutage, restoreDNS, let custom = self.customDNSBeforeCaptive, custom != "Empty" {
                     if let iface = NetworkUtilities.defaultInterface(), let service = NetworkUtilities.networkServiceName(for: iface) {
                         _ = DNSManager.setDNS(service: service, dnsArg: custom)
@@ -82,22 +95,28 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
                     self.dnsRevertedForOutage = false
                 }
             case .bad:
-                self.updateStatusIndicator(.bad)
                 if revertDNS, !self.dnsRevertedForOutage {
                     if let iface = NetworkUtilities.defaultInterface(), let service = NetworkUtilities.networkServiceName(for: iface) {
-                        let lastCustom = UserDefaults.standard.string(forKey: "LastCustomDNS")
+                        let lastCustom = UserDefaults.standard.string(forKey: UserDefaultsKey.lastCustomDNS)
                         self.customDNSBeforeCaptive = (lastCustom != "Empty") ? lastCustom : nil
                         _ = DNSManager.setDNS(service: service, dnsArg: "Empty")
                         self.dnsRevertedForOutage = true
                     }
                 }
             case .captivePortal:
-                self.updateStatusIndicator(.captivePortal)
+                break
             }
-            self.pingMenuItem?.title = result
+            self.pingMenuItem?.title = result.message
             if let pingItem = self.pingMenuItem {
                 self.stylePingMenuItem(pingItem)
             }
+            self.refreshPacketLossMenuItem()
+            self.renderIcon()
+        }
+        pingManager.onPacketLossUpdated = { [weak self] in
+            guard let self else { return }
+            self.refreshPacketLossMenuItem()
+            self.renderIcon()
         }
         pingManager.start()
 
@@ -109,19 +128,8 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
         ipMenuItems.forEach(menu.removeItem)
         ipMenuItems.removeAll()
         if let dnsMenu = dnsMenuItem { menu.removeItem(dnsMenu) }
-        if let graphItem = graphMenuItem, menu.items.contains(graphItem) { menu.removeItem(graphItem) }
-        var insertIndex = 0
-        if let pingItem = pingMenuItem, let pingIdx = menu.items.firstIndex(of: pingItem) {
-            insertIndex = pingIdx + 1
-        }
-        if let graphItem = graphMenuItem {
-            menu.insertItem(graphItem, at: insertIndex)
-            insertIndex += 1
-            let sep = NSMenuItem.separator()
-            menu.insertItem(sep, at: insertIndex)
-            ipMenuItems.append(sep)
-            insertIndex += 1
-        }
+        guard let preferencesMenuItem, let baseInsertIndex = menu.items.firstIndex(of: preferencesMenuItem) else { return }
+        var insertIndex = baseInsertIndex
         let ifaces = NetworkUtilities.localInterfaceAddresses()
         if !ifaces.isEmpty {
             for (idx, (iface, ip)) in ifaces.enumerated() {
@@ -193,17 +201,12 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
     @MainActor
     @objc private func showPreferences(_ sender: Any?) {
         if preferencesWindow == nil {
-            preferencesWindow = PreferencesWindowController { [weak self] host, interval, highPing, customDNS, revertDNS, restoreDNS, launchAtLogin in
-                UserDefaults.standard.set(interval, forKey: "PingInterval")
-                UserDefaults.standard.set(host, forKey: "PingHost")
-                UserDefaults.standard.set(highPing, forKey: "HighPingThreshold")
-                UserDefaults.standard.set(customDNS, forKey: "CustomDNSServer")
-                UserDefaults.standard.set(revertDNS, forKey: "RevertDNSOnCaptivePortal")
-                UserDefaults.standard.set(restoreDNS, forKey: "RestoreCustomDNSAfterCaptive")
-                UserDefaults.standard.set(launchAtLogin, forKey: "LaunchAtLogin")
-                self?.pingManager.updateSettings(host: host, interval: interval)
-                self?.pingManager.highPingThreshold = highPing
+            preferencesWindow = PreferencesWindowController { [weak self] in
+                self?.pingManager.reloadSettingsFromDefaults()
+                self?.refreshPacketLossMenuItem()
+                self?.renderIcon()
                 self?.preferencesWindow = nil
+                let launchAtLogin = UserDefaults.standard.bool(forKey: UserDefaultsKey.launchAtLogin)
                 LaunchAgentManager.setLaunchAtLogin(enabled: launchAtLogin)
             }
         }
@@ -232,9 +235,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
         guard let iface = NetworkUtilities.defaultInterface(), let service = NetworkUtilities.networkServiceName(for: iface) else { return }
         let dnsArg = ip ?? "Empty"
         if dnsArg != "Empty" {
-            UserDefaults.standard.set(dnsArg, forKey: "LastCustomDNS")
+            UserDefaults.standard.set(dnsArg, forKey: UserDefaultsKey.lastCustomDNS)
         } else {
-            UserDefaults.standard.removeObject(forKey: "LastCustomDNS")
+            UserDefaults.standard.removeObject(forKey: UserDefaultsKey.lastCustomDNS)
         }
         let status = DNSManager.setDNS(service: service, dnsArg: dnsArg)
         if !status.success {
@@ -250,44 +253,49 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
     private func setupStatusButton() {
         guard let button = statusItem?.button else { return }
         button.font = NSFont.systemFont(ofSize: 16, weight: .medium)
-        button.imagePosition = .noImage
+        button.imagePosition = .imageOnly
     }
 
-    private func updateStatusIndicator(_ status: PingManager.PingStatus) {
+    private func renderIcon() {
         guard let button = statusItem?.button else { return }
+        button.attributedTitle = NSAttributedString(string: "")
+        button.image = StatusIconRenderer.render(
+            latencyMs: latestLatencyMs,
+            lossLevel: pingManager.lossTracker.level,
+            pingStatus: latestPingStatus,
+            hasEnoughLossSamples: pingManager.lossTracker.hasEnoughSamples
+        )
+        button.toolTip = tooltipText()
+    }
 
-        let attributes: [NSAttributedString.Key: Any]
-
-        switch status {
-        case .good:
-            attributes = [
-                .font: NSFont.systemFont(ofSize: 14, weight: .bold),
-                .foregroundColor: NSColor.systemGreen
-            ]
-            let attributedTitle = NSAttributedString(string: "●", attributes: attributes)
-            button.attributedTitle = attributedTitle
-        case .warning:
-            attributes = [
-                .font: NSFont.systemFont(ofSize: 14, weight: .bold),
-                .foregroundColor: NSColor.systemYellow
-            ]
-            let attributedTitle = NSAttributedString(string: "●", attributes: attributes)
-            button.attributedTitle = attributedTitle
-        case .bad:
-            attributes = [
-                .font: NSFont.systemFont(ofSize: 14, weight: .bold),
-                .foregroundColor: NSColor.systemRed
-            ]
-            let attributedTitle = NSAttributedString(string: "●", attributes: attributes)
-            button.attributedTitle = attributedTitle
-        case .captivePortal:
-            attributes = [
-                .font: NSFont.systemFont(ofSize: 14, weight: .bold),
-                .foregroundColor: NSColor.systemOrange
-            ]
-            let attributedTitle = NSAttributedString(string: "●", attributes: attributes)
-            button.attributedTitle = attributedTitle
+    private func tooltipText() -> String {
+        let pingText = latestLatencyMs.map { "\($0)ms" } ?? (latestPingStatus == .captivePortal ? "Captive Portal" : "Unavailable")
+        let lossText: String
+        if pingManager.lossTracker.hasEnoughSamples {
+            lossText = String(format: "%.1f%%", pingManager.lossTracker.lossPercent)
+        } else {
+            lossText = "Collecting"
         }
+        return "Ping: \(pingText) | Loss: \(lossText)"
+    }
+
+    private func refreshPacketLossMenuItem() {
+        guard let item = packetLossMenuItem else { return }
+        let sampleCount = pingManager.lossTracker.sampleCount
+        let windowSize = pingManager.packetLossWindowSize
+        let mode = pingManager.packetLossMode.displayName.lowercased()
+        if pingManager.lossTracker.hasEnoughSamples {
+            let lossText = String(format: "%.1f", pingManager.lossTracker.lossPercent)
+            item.title = "📉 Loss: \(lossText)% (\(mode), \(sampleCount)/\(windowSize))"
+            item.isHidden = false
+        } else if sampleCount > 0 {
+            item.title = "📉 Loss: collecting (\(mode), \(sampleCount)/\(windowSize))"
+            item.isHidden = false
+        } else {
+            item.title = ""
+            item.isHidden = true
+        }
+        styleGraphMenuItem(item)
     }
 
     private func stylePingMenuItem(_ item: NSMenuItem) {

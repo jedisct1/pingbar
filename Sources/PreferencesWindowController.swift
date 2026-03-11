@@ -5,165 +5,143 @@ class PreferencesViewController: NSViewController {
     let hostField = NSTextField()
     let highPingField = NSTextField()
     let customDNSField = NSTextField()
+    let packetLossModePopup = NSPopUpButton()
+    let packetLossProbeIntervalField = NSTextField()
+    let packetLossBurstSizeField = NSTextField()
+    let packetLossWindowSizeField = NSTextField()
+    let packetLossWarningThresholdField = NSTextField()
+    let packetLossBadThresholdField = NSTextField()
     let revertDNSCheckbox = NSButton(checkboxWithTitle: "Revert DNS to System Default when network is unreachable", target: nil, action: nil)
     let restoreDNSCheckbox = NSButton(checkboxWithTitle: "Restore my custom DNS after passing captive portal", target: nil, action: nil)
     let launchAtLoginCheckbox = NSButton(checkboxWithTitle: "Launch PingBar at login", target: nil, action: nil)
-    var onSave: ((String, Double, Int, String, Bool, Bool, Bool) -> Void)?
+    var onSave: (() -> Void)?
 
     override func loadView() {
         let view = NSView()
         self.view = view
         view.translatesAutoresizingMaskIntoConstraints = false
-        view.setFrameSize(NSSize(width: 480, height: 340))
-
-        // Set a nice background color
+        view.setFrameSize(NSSize(width: 520, height: 520))
         view.wantsLayer = true
         view.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
 
-        // Header
         let headerLabel = NSTextField(labelWithString: "⚙️ PingBar Preferences")
         headerLabel.font = NSFont.systemFont(ofSize: 18, weight: .semibold)
         headerLabel.alignment = .center
         headerLabel.textColor = NSColor.labelColor
 
-        // Section headers
-        let networkSectionLabel = NSTextField(labelWithString: "🌐 Network Settings")
-        networkSectionLabel.font = NSFont.systemFont(ofSize: 14, weight: .medium)
-        networkSectionLabel.textColor = NSColor.secondaryLabelColor
+        let networkSectionLabel = sectionLabel("🌐 Network Settings")
+        let packetLossSectionLabel = sectionLabel("📉 Packet Loss")
+        let dnsSectionLabel = sectionLabel("🔧 DNS Management")
+        let systemSectionLabel = sectionLabel("💻 System Integration")
 
-        let dnsSectionLabel = NSTextField(labelWithString: "🔧 DNS Management")
-        dnsSectionLabel.font = NSFont.systemFont(ofSize: 14, weight: .medium)
-        dnsSectionLabel.textColor = NSColor.secondaryLabelColor
+        let intervalLabel = fieldLabel("⏱ Ping interval (seconds):")
+        let hostLabel = fieldLabel("🎯 Target host (URL):")
+        let highPingLabel = fieldLabel("⚠️ High ping threshold (ms):")
+        let customDNSLabel = fieldLabel("🔧 Custom DNS (optional):")
+        let packetLossModeLabel = fieldLabel("📊 Loss measurement mode:")
+        let packetLossProbeIntervalLabel = fieldLabel("⏱ Active probe interval (s):")
+        let packetLossBurstSizeLabel = fieldLabel("📦 Active burst size:")
+        let packetLossWindowSizeLabel = fieldLabel("🪟 Loss window size:")
+        let packetLossWarningThresholdLabel = fieldLabel("🟡 Warning threshold (%):")
+        let packetLossBadThresholdLabel = fieldLabel("🔴 Bad threshold (%):")
 
-        let systemSectionLabel = NSTextField(labelWithString: "💻 System Integration")
-        systemSectionLabel.font = NSFont.systemFont(ofSize: 14, weight: .medium)
-        systemSectionLabel.textColor = NSColor.secondaryLabelColor
-
-        // Labels
-        let intervalLabel = NSTextField(labelWithString: "⏱ Ping interval (seconds):")
-        let hostLabel = NSTextField(labelWithString: "🎯 Target host (URL):")
-        let highPingLabel = NSTextField(labelWithString: "⚠️ High ping threshold (ms):")
-        let customDNSLabel = NSTextField(labelWithString: "🔧 Custom DNS (optional):")
-        intervalLabel.alignment = .right
-        hostLabel.alignment = .right
-        highPingLabel.alignment = .right
-        customDNSLabel.alignment = .right
-        intervalLabel.font = NSFont.systemFont(ofSize: 13, weight: .medium)
-        hostLabel.font = NSFont.systemFont(ofSize: 13, weight: .medium)
-        highPingLabel.font = NSFont.systemFont(ofSize: 13, weight: .medium)
-        customDNSLabel.font = NSFont.systemFont(ofSize: 13, weight: .medium)
-        intervalLabel.textColor = NSColor.labelColor
-        hostLabel.textColor = NSColor.labelColor
-        highPingLabel.textColor = NSColor.labelColor
-        customDNSLabel.textColor = NSColor.labelColor
-
-        // Fields with enhanced styling
-        self.styleTextField(intervalField)
-        intervalField.stringValue = String(UserDefaults.standard.double(forKey: "PingInterval") > 0 ? UserDefaults.standard.double(forKey: "PingInterval") : 5.0)
+        styleTextField(intervalField)
+        intervalField.stringValue = String(defaultDouble(for: UserDefaultsKey.pingInterval, fallback: 5.0))
         intervalField.placeholderString = "e.g. 5"
 
-        self.styleTextField(hostField)
-        hostField.stringValue = UserDefaults.standard.string(forKey: "PingHost") ?? "https://www.google.com"
+        styleTextField(hostField)
+        hostField.stringValue = UserDefaults.standard.string(forKey: UserDefaultsKey.pingHost) ?? "https://www.google.com"
         hostField.placeholderString = "e.g. https://www.google.com"
 
-        self.styleTextField(highPingField)
-        highPingField.stringValue = String(UserDefaults.standard.integer(forKey: "HighPingThreshold") > 0 ? UserDefaults.standard.integer(forKey: "HighPingThreshold") : 200)
+        styleTextField(highPingField)
+        highPingField.stringValue = String(defaultInt(for: UserDefaultsKey.highPingThreshold, fallback: 200))
         highPingField.placeholderString = "e.g. 200"
 
-        self.styleTextField(customDNSField)
-        customDNSField.stringValue = UserDefaults.standard.string(forKey: "CustomDNSServer") ?? ""
+        styleTextField(customDNSField)
+        customDNSField.stringValue = UserDefaults.standard.string(forKey: UserDefaultsKey.customDNSServer) ?? ""
         customDNSField.placeholderString = "e.g. 1.1.1.1 or My Server"
 
-        // Styled checkboxes
-        self.styleCheckbox(revertDNSCheckbox)
-        self.styleCheckbox(restoreDNSCheckbox)
-        self.styleCheckbox(launchAtLoginCheckbox)
+        stylePopup(packetLossModePopup)
+        packetLossModePopup.addItems(withTitles: ["Passive", "Active"])
+        let savedMode = PingManager.PacketLossMode(rawValue: UserDefaults.standard.string(forKey: UserDefaultsKey.packetLossMode) ?? "") ?? .passive
+        packetLossModePopup.selectItem(withTitle: savedMode.displayName)
+        packetLossModePopup.target = self
+        packetLossModePopup.action = #selector(packetLossModeChanged)
 
-        // Enhanced buttons
+        styleTextField(packetLossProbeIntervalField)
+        packetLossProbeIntervalField.stringValue = String(defaultDouble(for: UserDefaultsKey.packetLossProbeInterval, fallback: 30.0))
+        packetLossProbeIntervalField.placeholderString = "e.g. 30"
+
+        styleTextField(packetLossBurstSizeField)
+        packetLossBurstSizeField.stringValue = String(defaultInt(for: UserDefaultsKey.packetLossBurstSize, fallback: 5))
+        packetLossBurstSizeField.placeholderString = "e.g. 5"
+
+        styleTextField(packetLossWindowSizeField)
+        packetLossWindowSizeField.stringValue = String(defaultInt(for: UserDefaultsKey.packetLossWindowSize, fallback: 50))
+        packetLossWindowSizeField.placeholderString = "e.g. 50"
+
+        styleTextField(packetLossWarningThresholdField)
+        packetLossWarningThresholdField.stringValue = String(defaultDouble(for: UserDefaultsKey.packetLossWarningThreshold, fallback: 3.0))
+        packetLossWarningThresholdField.placeholderString = "e.g. 3"
+
+        styleTextField(packetLossBadThresholdField)
+        packetLossBadThresholdField.stringValue = String(defaultDouble(for: UserDefaultsKey.packetLossBadThreshold, fallback: 10.0))
+        packetLossBadThresholdField.placeholderString = "e.g. 10"
+
+        styleCheckbox(revertDNSCheckbox)
+        styleCheckbox(restoreDNSCheckbox)
+        styleCheckbox(launchAtLoginCheckbox)
+
         let saveButton = NSButton(title: "💾 Save Settings", target: self, action: #selector(saveClicked))
         let cancelButton = NSButton(title: "❌ Cancel", target: self, action: #selector(cancelClicked))
-        self.styleButton(saveButton, isPrimary: true)
-        self.styleButton(cancelButton, isPrimary: false)
+        styleButton(saveButton, isPrimary: true)
+        styleButton(cancelButton, isPrimary: false)
         saveButton.setContentHuggingPriority(.required, for: .horizontal)
         cancelButton.setContentHuggingPriority(.required, for: .horizontal)
         saveButton.translatesAutoresizingMaskIntoConstraints = false
         cancelButton.translatesAutoresizingMaskIntoConstraints = false
 
-        // Create organized sections
-        let headerStack = NSStackView(views: [headerLabel])
-        headerStack.orientation = .vertical
-        headerStack.spacing = 20
-        headerStack.translatesAutoresizingMaskIntoConstraints = false
-
-        // Network settings section
-        let networkStack = NSStackView()
-        networkStack.orientation = .vertical
-        networkStack.spacing = 12
-        networkStack.translatesAutoresizingMaskIntoConstraints = false
-
-        let intervalRow = NSStackView(views: [intervalLabel, intervalField])
-        intervalRow.orientation = .horizontal
-        intervalRow.spacing = 12
-        intervalRow.alignment = .centerY
-
-        let hostRow = NSStackView(views: [hostLabel, hostField])
-        hostRow.orientation = .horizontal
-        hostRow.spacing = 12
-        hostRow.alignment = .centerY
-
-        let highPingRow = NSStackView(views: [highPingLabel, highPingField])
-        highPingRow.orientation = .horizontal
-        highPingRow.spacing = 12
-        highPingRow.alignment = .centerY
-
-        let customDNSRow = NSStackView(views: [customDNSLabel, customDNSField])
-        customDNSRow.orientation = .horizontal
-        customDNSRow.spacing = 12
-        customDNSRow.alignment = .centerY
-
+        let networkStack = verticalStack(spacing: 12)
         networkStack.addArrangedSubview(networkSectionLabel)
-        networkStack.addArrangedSubview(intervalRow)
-        networkStack.addArrangedSubview(hostRow)
-        networkStack.addArrangedSubview(highPingRow)
-        networkStack.addArrangedSubview(customDNSRow)
+        networkStack.addArrangedSubview(makeRow(label: intervalLabel, control: intervalField))
+        networkStack.addArrangedSubview(makeRow(label: hostLabel, control: hostField))
+        networkStack.addArrangedSubview(makeRow(label: highPingLabel, control: highPingField))
+        networkStack.addArrangedSubview(makeRow(label: customDNSLabel, control: customDNSField))
 
-        // DNS settings section
-        let dnsStack = NSStackView()
-        dnsStack.orientation = .vertical
-        dnsStack.spacing = 8
-        dnsStack.translatesAutoresizingMaskIntoConstraints = false
+        let packetLossStack = verticalStack(spacing: 12)
+        packetLossStack.addArrangedSubview(packetLossSectionLabel)
+        packetLossStack.addArrangedSubview(makeRow(label: packetLossModeLabel, control: packetLossModePopup))
+        packetLossStack.addArrangedSubview(makeRow(label: packetLossProbeIntervalLabel, control: packetLossProbeIntervalField))
+        packetLossStack.addArrangedSubview(makeRow(label: packetLossBurstSizeLabel, control: packetLossBurstSizeField))
+        packetLossStack.addArrangedSubview(makeRow(label: packetLossWindowSizeLabel, control: packetLossWindowSizeField))
+        packetLossStack.addArrangedSubview(makeRow(label: packetLossWarningThresholdLabel, control: packetLossWarningThresholdField))
+        packetLossStack.addArrangedSubview(makeRow(label: packetLossBadThresholdLabel, control: packetLossBadThresholdField))
+
+        let dnsStack = verticalStack(spacing: 8)
         dnsStack.addArrangedSubview(dnsSectionLabel)
         dnsStack.addArrangedSubview(revertDNSCheckbox)
         dnsStack.addArrangedSubview(restoreDNSCheckbox)
 
-        // System settings section
-        let systemStack = NSStackView()
-        systemStack.orientation = .vertical
-        systemStack.spacing = 8
-        systemStack.translatesAutoresizingMaskIntoConstraints = false
+        let systemStack = verticalStack(spacing: 8)
         systemStack.addArrangedSubview(systemSectionLabel)
         systemStack.addArrangedSubview(launchAtLoginCheckbox)
 
-        // Main form stack
-        let formStack = NSStackView()
-        formStack.orientation = .vertical
-        formStack.spacing = 20
-        formStack.translatesAutoresizingMaskIntoConstraints = false
+        let formStack = verticalStack(spacing: 20)
         formStack.addArrangedSubview(networkStack)
-        formStack.addArrangedSubview(self.createSeparator())
+        formStack.addArrangedSubview(createSeparator())
+        formStack.addArrangedSubview(packetLossStack)
+        formStack.addArrangedSubview(createSeparator())
         formStack.addArrangedSubview(dnsStack)
-        formStack.addArrangedSubview(self.createSeparator())
+        formStack.addArrangedSubview(createSeparator())
         formStack.addArrangedSubview(systemStack)
 
-        // Button stack
         let buttonStack = NSStackView(views: [saveButton, cancelButton])
         buttonStack.orientation = .horizontal
         buttonStack.spacing = 12
         buttonStack.alignment = .centerY
         buttonStack.translatesAutoresizingMaskIntoConstraints = false
 
-        // Main vertical stack with better spacing
-        let mainStack = NSStackView(views: [headerStack, formStack, buttonStack])
+        let mainStack = NSStackView(views: [headerLabel, formStack, buttonStack])
         mainStack.orientation = .vertical
         mainStack.spacing = 24
         mainStack.edgeInsets = NSEdgeInsets(top: 30, left: 30, bottom: 30, right: 30)
@@ -180,55 +158,102 @@ class PreferencesViewController: NSViewController {
             hostField.widthAnchor.constraint(equalToConstant: 220),
             highPingField.widthAnchor.constraint(equalToConstant: 220),
             customDNSField.widthAnchor.constraint(equalToConstant: 220),
-            intervalLabel.widthAnchor.constraint(equalToConstant: 180),
-            hostLabel.widthAnchor.constraint(equalToConstant: 180),
-            highPingLabel.widthAnchor.constraint(equalToConstant: 180),
-            customDNSLabel.widthAnchor.constraint(equalToConstant: 180)
+            packetLossProbeIntervalField.widthAnchor.constraint(equalToConstant: 220),
+            packetLossBurstSizeField.widthAnchor.constraint(equalToConstant: 220),
+            packetLossWindowSizeField.widthAnchor.constraint(equalToConstant: 220),
+            packetLossWarningThresholdField.widthAnchor.constraint(equalToConstant: 220),
+            packetLossBadThresholdField.widthAnchor.constraint(equalToConstant: 220),
+            packetLossModePopup.widthAnchor.constraint(equalToConstant: 220)
         ])
 
-        revertDNSCheckbox.state = UserDefaults.standard.bool(forKey: "RevertDNSOnCaptivePortal") ? .on : .off
-        restoreDNSCheckbox.state = UserDefaults.standard.bool(forKey: "RestoreCustomDNSAfterCaptive") ? .on : .off
-        launchAtLoginCheckbox.state = UserDefaults.standard.bool(forKey: "LaunchAtLogin") ? .on : .off
+        revertDNSCheckbox.state = UserDefaults.standard.bool(forKey: UserDefaultsKey.revertDNSOnCaptivePortal) ? .on : .off
+        restoreDNSCheckbox.state = UserDefaults.standard.bool(forKey: UserDefaultsKey.restoreCustomDNSAfterCaptive) ? .on : .off
+        launchAtLoginCheckbox.state = UserDefaults.standard.bool(forKey: UserDefaultsKey.launchAtLogin) ? .on : .off
+        refreshPacketLossFieldState()
     }
 
     @objc func saveClicked() {
-        let interval = Double(intervalField.stringValue) ?? 5.0
-        let host = hostField.stringValue
-        let highPing = Int(highPingField.stringValue) ?? 200
+        let interval = max(1.0, Double(intervalField.stringValue) ?? 5.0)
+        let host = hostField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        let highPing = max(1, Int(highPingField.stringValue) ?? 200)
         let customDNS = customDNSField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        let mode = packetLossModePopup.titleOfSelectedItem == "Active" ? PingManager.PacketLossMode.active : .passive
+        let packetLossProbeInterval = max(1.0, Double(packetLossProbeIntervalField.stringValue) ?? 30.0)
+        let packetLossBurstSize = clamp(Int(packetLossBurstSizeField.stringValue) ?? 5, min: 1, max: 100)
+        let packetLossWindowSize = clamp(Int(packetLossWindowSizeField.stringValue) ?? 50, min: 10, max: 500)
+        let packetLossWarningThreshold = max(0.1, Double(packetLossWarningThresholdField.stringValue) ?? 3.0)
+        let packetLossBadThreshold = Double(packetLossBadThresholdField.stringValue) ?? 10.0
 
-        // Validate custom DNS if provided
+        guard !host.isEmpty, URL(string: host) != nil else {
+            showAlert(title: "Invalid Target Host", message: "Please enter a valid URL such as https://www.google.com")
+            return
+        }
+
         if !customDNS.isEmpty {
             let components = customDNS.components(separatedBy: " ")
             let ipAddress = components[0]
-
-            // Basic IP address validation
             if !isValidIPAddress(ipAddress) {
-                let alert = NSAlert()
-                alert.messageText = "Invalid DNS Server"
-                alert.informativeText = "Please enter a valid IP address for the custom DNS server. Examples:\n• 1.1.1.1\n• 8.8.8.8 Google\n• 192.168.1.1 Home Router"
-                alert.alertStyle = .warning
-                alert.runModal()
+                showAlert(title: "Invalid DNS Server", message: "Please enter a valid IP address for the custom DNS server. Examples:\n• 1.1.1.1\n• 8.8.8.8 Google\n• 192.168.1.1 Home Router")
                 return
             }
+        }
+
+        guard packetLossBadThreshold > packetLossWarningThreshold else {
+            showAlert(title: "Invalid Packet Loss Thresholds", message: "The bad packet loss threshold must be higher than the warning threshold.")
+            return
         }
 
         let revertDNS = (revertDNSCheckbox.state == .on)
         let restoreDNS = (restoreDNSCheckbox.state == .on)
         let launchAtLogin = (launchAtLoginCheckbox.state == .on)
-        UserDefaults.standard.set(highPing, forKey: "HighPingThreshold")
-        UserDefaults.standard.set(customDNS, forKey: "CustomDNSServer")
-        UserDefaults.standard.set(revertDNS, forKey: "RevertDNSOnCaptivePortal")
-        UserDefaults.standard.set(restoreDNS, forKey: "RestoreCustomDNSAfterCaptive")
-        UserDefaults.standard.set(launchAtLogin, forKey: "LaunchAtLogin")
-        onSave?(host, interval, highPing, customDNS, revertDNS, restoreDNS, launchAtLogin)
-        self.view.window?.close()
+
+        UserDefaults.standard.set(interval, forKey: UserDefaultsKey.pingInterval)
+        UserDefaults.standard.set(host, forKey: UserDefaultsKey.pingHost)
+        UserDefaults.standard.set(highPing, forKey: UserDefaultsKey.highPingThreshold)
+        UserDefaults.standard.set(customDNS, forKey: UserDefaultsKey.customDNSServer)
+        UserDefaults.standard.set(mode.rawValue, forKey: UserDefaultsKey.packetLossMode)
+        UserDefaults.standard.set(packetLossProbeInterval, forKey: UserDefaultsKey.packetLossProbeInterval)
+        UserDefaults.standard.set(packetLossBurstSize, forKey: UserDefaultsKey.packetLossBurstSize)
+        UserDefaults.standard.set(packetLossWindowSize, forKey: UserDefaultsKey.packetLossWindowSize)
+        UserDefaults.standard.set(packetLossWarningThreshold, forKey: UserDefaultsKey.packetLossWarningThreshold)
+        UserDefaults.standard.set(packetLossBadThreshold, forKey: UserDefaultsKey.packetLossBadThreshold)
+        UserDefaults.standard.set(revertDNS, forKey: UserDefaultsKey.revertDNSOnCaptivePortal)
+        UserDefaults.standard.set(restoreDNS, forKey: UserDefaultsKey.restoreCustomDNSAfterCaptive)
+        UserDefaults.standard.set(launchAtLogin, forKey: UserDefaultsKey.launchAtLogin)
+
+        onSave?()
+        view.window?.close()
+    }
+
+    @objc func cancelClicked() {
+        view.window?.close()
+    }
+
+    @objc private func packetLossModeChanged() {
+        refreshPacketLossFieldState()
+    }
+
+    private func refreshPacketLossFieldState() {
+        let isActive = packetLossModePopup.titleOfSelectedItem == "Active"
+        packetLossProbeIntervalField.isEnabled = isActive
+        packetLossBurstSizeField.isEnabled = isActive
+        packetLossProbeIntervalField.alphaValue = isActive ? 1.0 : 0.55
+        packetLossBurstSizeField.alphaValue = isActive ? 1.0 : 0.55
+    }
+
+    private func defaultInt(for key: String, fallback: Int) -> Int {
+        let value = UserDefaults.standard.integer(forKey: key)
+        return value > 0 ? value : fallback
+    }
+
+    private func defaultDouble(for key: String, fallback: Double) -> Double {
+        let value = UserDefaults.standard.double(forKey: key)
+        return value > 0 ? value : fallback
     }
 
     private func isValidIPAddress(_ ip: String) -> Bool {
         let parts = ip.components(separatedBy: ".")
         guard parts.count == 4 else { return false }
-
         for part in parts {
             guard let number = Int(part), number >= 0 && number <= 255 else {
                 return false
@@ -237,11 +262,46 @@ class PreferencesViewController: NSViewController {
         return true
     }
 
-    @objc func cancelClicked() {
-        self.view.window?.close()
+    private func showAlert(title: String, message: String) {
+        let alert = NSAlert()
+        alert.messageText = title
+        alert.informativeText = message
+        alert.alertStyle = .warning
+        alert.runModal()
     }
 
-    // MARK: - UI Styling Helper Methods
+    private func sectionLabel(_ string: String) -> NSTextField {
+        let label = NSTextField(labelWithString: string)
+        label.font = NSFont.systemFont(ofSize: 14, weight: .medium)
+        label.textColor = NSColor.secondaryLabelColor
+        return label
+    }
+
+    private func fieldLabel(_ string: String) -> NSTextField {
+        let label = NSTextField(labelWithString: string)
+        label.alignment = .right
+        label.font = NSFont.systemFont(ofSize: 13, weight: .medium)
+        label.textColor = NSColor.labelColor
+        label.setContentHuggingPriority(.required, for: .horizontal)
+        label.widthAnchor.constraint(equalToConstant: 180).isActive = true
+        return label
+    }
+
+    private func makeRow(label: NSTextField, control: NSView) -> NSStackView {
+        let row = NSStackView(views: [label, control])
+        row.orientation = .horizontal
+        row.spacing = 12
+        row.alignment = .centerY
+        return row
+    }
+
+    private func verticalStack(spacing: CGFloat) -> NSStackView {
+        let stack = NSStackView()
+        stack.orientation = .vertical
+        stack.spacing = spacing
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        return stack
+    }
 
     private func styleTextField(_ textField: NSTextField) {
         textField.font = NSFont.systemFont(ofSize: 13)
@@ -258,6 +318,12 @@ class PreferencesViewController: NSViewController {
         textField.layer?.borderColor = NSColor.separatorColor.cgColor
     }
 
+    private func stylePopup(_ popup: NSPopUpButton) {
+        popup.translatesAutoresizingMaskIntoConstraints = false
+        popup.font = NSFont.systemFont(ofSize: 13)
+        popup.controlSize = .regular
+    }
+
     private func styleCheckbox(_ checkbox: NSButton) {
         checkbox.font = NSFont.systemFont(ofSize: 13)
         checkbox.controlSize = .regular
@@ -267,14 +333,11 @@ class PreferencesViewController: NSViewController {
         button.bezelStyle = .rounded
         button.font = NSFont.systemFont(ofSize: 13, weight: isPrimary ? .semibold : .regular)
         button.controlSize = .regular
-
         if isPrimary {
             button.keyEquivalent = "\r"
         }
-
         button.wantsLayer = true
         button.layer?.cornerRadius = 6
-
         if isPrimary {
             button.layer?.backgroundColor = NSColor.controlAccentColor.cgColor
             button.contentTintColor = NSColor.white
@@ -292,14 +355,18 @@ class PreferencesViewController: NSViewController {
 }
 
 class PreferencesWindowController: NSWindowController {
-    convenience init(onSave: @escaping (String, Double, Int, String, Bool, Bool, Bool) -> Void) {
+    convenience init(onSave: @escaping () -> Void) {
         let vc = PreferencesViewController()
         vc.onSave = onSave
         let window = NSWindow(contentViewController: vc)
         window.title = "Preferences"
         window.styleMask = [.titled, .closable]
-        window.setContentSize(NSSize(width: 480, height: 340))
+        window.setContentSize(NSSize(width: 520, height: 520))
         window.center()
         self.init(window: window)
     }
+}
+
+private func clamp<T: Comparable>(_ value: T, min minValue: T, max maxValue: T) -> T {
+    Swift.max(minValue, Swift.min(value, maxValue))
 }
