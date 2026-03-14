@@ -71,7 +71,7 @@ final class PingManagerTests: XCTestCase {
 
     func testRecentPingsTracking() {
         // Initially empty
-        XCTAssertTrue(pingManager.getRecentPings().isEmpty)
+        XCTAssertTrue(pingManager.recentPings.isEmpty)
 
         // Simulate adding pings (would normally come from network requests)
         // This test would need to be expanded with proper mocking for actual network tests

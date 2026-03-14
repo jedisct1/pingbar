@@ -179,8 +179,8 @@ class PreferencesViewController: NSViewController {
         let customDNS = customDNSField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
         let mode = packetLossModePopup.titleOfSelectedItem == "Active" ? PingManager.PacketLossMode.active : .passive
         let packetLossProbeInterval = max(1.0, Double(packetLossProbeIntervalField.stringValue) ?? 30.0)
-        let packetLossBurstSize = clamp(Int(packetLossBurstSizeField.stringValue) ?? 5, min: 1, max: 100)
-        let packetLossWindowSize = clamp(Int(packetLossWindowSizeField.stringValue) ?? 50, min: 10, max: 500)
+        let packetLossBurstSize = max(1, min(Int(packetLossBurstSizeField.stringValue) ?? 5, 100))
+        let packetLossWindowSize = max(10, min(Int(packetLossWindowSizeField.stringValue) ?? 50, 500))
         let packetLossWarningThreshold = max(0.1, Double(packetLossWarningThresholdField.stringValue) ?? 3.0)
         let packetLossBadThreshold = Double(packetLossBadThresholdField.stringValue) ?? 10.0
 
@@ -365,8 +365,4 @@ class PreferencesWindowController: NSWindowController {
         window.center()
         self.init(window: window)
     }
-}
-
-private func clamp<T: Comparable>(_ value: T, min minValue: T, max maxValue: T) -> T {
-    Swift.max(minValue, Swift.min(value, maxValue))
 }

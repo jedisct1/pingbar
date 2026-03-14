@@ -20,7 +20,7 @@ final class PingManager {
         let message: String
         let latencyMs: Int?
         let success: Bool
-        let countsAsLoss: Bool
+        let isCountable: Bool
     }
 
     private var timer: Timer?
@@ -83,9 +83,9 @@ final class PingManager {
         highPingThresholdValue = max(1, threshold)
 
         packetLossMode = PacketLossMode(rawValue: defaults.string(forKey: UserDefaultsKey.packetLossMode) ?? "") ?? .passive
-        packetLossWindowSize = clampValue(defaults.integer(forKey: UserDefaultsKey.packetLossWindowSize).nonZeroOr(50), min: 10, max: 500)
+        packetLossWindowSize = max(10, min(defaults.integer(forKey: UserDefaultsKey.packetLossWindowSize).nonZeroOr(50), 500))
         packetLossProbeInterval = max(1.0, defaults.double(forKey: UserDefaultsKey.packetLossProbeInterval).nonZeroOr(30.0))
-        packetLossBurstSize = clampValue(defaults.integer(forKey: UserDefaultsKey.packetLossBurstSize).nonZeroOr(5), min: 1, max: 100)
+        packetLossBurstSize = max(1, min(defaults.integer(forKey: UserDefaultsKey.packetLossBurstSize).nonZeroOr(5), 100))
 
         let warningThreshold = defaults.double(forKey: UserDefaultsKey.packetLossWarningThreshold).nonZeroOr(3.0)
         let badThreshold = defaults.double(forKey: UserDefaultsKey.packetLossBadThreshold).nonZeroOr(10.0)
@@ -149,10 +149,6 @@ final class PingManager {
         url.host ?? url.absoluteString
     }
 
-    func getRecentPings() -> [Int] {
-        recentPings
-    }
-
     private func ping() {
         let generation = lifecycleGeneration
         let task = makeProbeTask(for: url, captureLatency: true) { [weak self] success, latencyMs in
@@ -184,7 +180,7 @@ final class PingManager {
             message: "Ping: \(latencyMs)ms",
             latencyMs: latencyMs,
             success: true,
-            countsAsLoss: true
+            isCountable: true
         )
         recordPassiveLossIfNeeded(result)
         onPingResult?(result)
@@ -202,7 +198,7 @@ final class PingManager {
                         message: "Captive Portal Detected",
                         latencyMs: nil,
                         success: false,
-                        countsAsLoss: false
+                        isCountable: false
                     )
                     self.recordPassiveLossIfNeeded(result)
                     self.onPingResult?(result)
@@ -217,7 +213,7 @@ final class PingManager {
                         message: "No Network (\(downFor)s)",
                         latencyMs: nil,
                         success: false,
-                        countsAsLoss: true
+                        isCountable: true
                     )
                     self.recordPassiveLossIfNeeded(result)
                     self.onPingResult?(result)
@@ -228,7 +224,7 @@ final class PingManager {
 
     private func recordPassiveLossIfNeeded(_ result: PingResult) {
         guard packetLossMode == .passive else { return }
-        lossTracker.record(success: result.success, isCountable: result.countsAsLoss)
+        lossTracker.record(success: result.success, isCountable: result.isCountable)
     }
 
     private func runActiveBurst() {
@@ -327,17 +323,13 @@ private final class BurstCounter: @unchecked Sendable {
 }
 
 private extension BinaryInteger {
-    func nonZeroOr<T: BinaryInteger>(_ fallback: T) -> T {
-        self > 0 ? T(self) : fallback
+    func nonZeroOr(_ fallback: Self) -> Self {
+        self > 0 ? self : fallback
     }
 }
 
 private extension BinaryFloatingPoint {
-    func nonZeroOr<T: BinaryFloatingPoint>(_ fallback: T) -> T {
-        self > 0 ? T(self) : fallback
+    func nonZeroOr(_ fallback: Self) -> Self {
+        self > 0 ? self : fallback
     }
-}
-
-private func clampValue<T: Comparable>(_ value: T, min minValue: T, max maxValue: T) -> T {
-    Swift.max(minValue, Swift.min(value, maxValue))
 }

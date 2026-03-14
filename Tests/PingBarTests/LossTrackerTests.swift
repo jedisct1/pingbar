@@ -147,9 +147,9 @@ final class LossTrackerTests: XCTestCase {
     func testHasEnoughSamples() {
         let tracker = LossTracker()
         XCTAssertFalse(tracker.hasEnoughSamples)
-        tracker.record(success: true)
-        XCTAssertFalse(tracker.hasEnoughSamples)
-        tracker.record(success: true)
+        for _ in 0..<9 {
+            tracker.record(success: true)
+        }
         XCTAssertFalse(tracker.hasEnoughSamples)
         tracker.record(success: true)
         XCTAssertTrue(tracker.hasEnoughSamples)

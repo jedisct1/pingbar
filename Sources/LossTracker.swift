@@ -42,7 +42,7 @@ final class LossTracker {
     var sampleCount: Int { window.count }
 
     /// Whether enough samples have been collected for a meaningful reading.
-    var hasEnoughSamples: Bool { window.count >= 3 }
+    var hasEnoughSamples: Bool { window.count >= 10 }
 
     init(config: Configuration = .default) {
         self.config = config.clamped()
