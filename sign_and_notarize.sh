@@ -17,7 +17,7 @@ if [ ! -d "$APP" ]; then
 fi
 
 echo "[1/4] Signing the app..."
-codesign --deep --force --verify --verbose --sign "$DEV_ID" "$APP"
+codesign --deep --force --verify --verbose --options runtime --sign "$DEV_ID" "$APP"
 
 
 echo "[2/4] Zipping the app for notarization..."
