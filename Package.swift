@@ -28,7 +28,10 @@ let package = Package(
                 "NetworkUtilities.swift",
                 "PreferencesWindowController.swift",
                 "LaunchAgentManager.swift",
-                "SparklineRenderer.swift"
+                "SparklineRenderer.swift",
+                "UserDefaultsKeys.swift",
+                "LossTracker.swift",
+                "StatusIconRenderer.swift"
             ],
             sources: ["main.swift"]
         ),

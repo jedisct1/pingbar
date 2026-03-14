@@ -17,7 +17,7 @@ struct DNSManager {
         }
 
         // Check if there's a custom DNS server configured
-        let customDNS = UserDefaults.standard.string(forKey: "CustomDNSServer") ?? ""
+        let customDNS = UserDefaults.standard.string(forKey: UserDefaultsKey.customDNSServer) ?? ""
         if !customDNS.isEmpty {
             // If the custom DNS contains a space, treat it as "IP Name" format
             let components = customDNS.components(separatedBy: " ")
@@ -38,7 +38,7 @@ struct DNSManager {
     }
 
     static func getCustomDNSIP() -> String? {
-        let customDNS = UserDefaults.standard.string(forKey: "CustomDNSServer") ?? ""
+        let customDNS = UserDefaults.standard.string(forKey: UserDefaultsKey.customDNSServer) ?? ""
         if customDNS.isEmpty {
             return nil
         }
