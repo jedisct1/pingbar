@@ -103,3 +103,4 @@ iOSInjectionProject/
 # PingBar specific
 PingBar.app
 *.zip
+*.tar.gz

@@ -1,0 +1,161 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build Universal Binary & Release
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify Info.plist version matches tag
+        run: |
+          PLIST_VERSION=$(grep -A1 CFBundleShortVersionString Info.plist | grep -o '[0-9.]*')
+          TAG_VERSION="${{ steps.version.outputs.VERSION }}"
+          if [ "$PLIST_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::Info.plist version ($PLIST_VERSION) does not match tag version ($TAG_VERSION)"
+            exit 1
+          fi
+
+      - name: Create release archive
+        run: ./package_release.sh
+
+      - name: Calculate SHA256
+        id: sha256
+        run: |
+          SHA=$(shasum -a 256 pingbar-${{ steps.version.outputs.VERSION }}.tar.gz | awk '{print $1}')
+          echo "SHA256=$SHA" >> "$GITHUB_OUTPUT"
+          echo "SHA256: $SHA"
+
+      - name: Verify universal binary architectures
+        run: lipo -info PingBar.app/Contents/MacOS/PingBar
+
+      - name: Verify code signature status
+        run: codesign -dv --verbose=4 PingBar.app
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: PingBar v${{ steps.version.outputs.VERSION }}
+          body: |
+            ## PingBar v${{ steps.version.outputs.VERSION }}
+
+            ### Installation
+
+            **Tap install:**
+            ```bash
+            brew tap jedisct1/pingbar
+            brew install --cask pingbar
+            ```
+
+            **Manual download:**
+            Download `pingbar-${{ steps.version.outputs.VERSION }}.tar.gz`, extract it, and move `PingBar.app` to `/Applications/`.
+
+            ### Checksums
+            | File | SHA256 |
+            |------|--------|
+            | `pingbar-${{ steps.version.outputs.VERSION }}.tar.gz` | `${{ steps.sha256.outputs.SHA256 }}` |
+
+            ### System Requirements
+            - macOS 12.0 (Monterey) or later
+            - Intel x64 or Apple Silicon (Universal Binary)
+          files: |
+            pingbar-${{ steps.version.outputs.VERSION }}.tar.gz
+          draft: false
+          prerelease: false
+
+  update-homebrew-tap:
+    name: Update Homebrew Tap
+    needs: build-and-release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Download release asset and get SHA256
+        id: sha256
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Wait briefly for release asset to be fully available
+          sleep 10
+          DOWNLOAD_URL="https://github.com/jedisct1/pingbar/releases/download/${GITHUB_REF_NAME}/pingbar-${{ steps.version.outputs.VERSION }}.tar.gz"
+          curl -fSL "$DOWNLOAD_URL" -o pingbar.tar.gz
+          SHA=$(sha256sum pingbar.tar.gz | awk '{print $1}')
+          echo "SHA256=$SHA" >> "$GITHUB_OUTPUT"
+          echo "SHA256: $SHA"
+
+      - name: Update Homebrew Tap
+        env:
+          TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          if [ -z "$TAP_GITHUB_TOKEN" ]; then
+            echo "::warning::HOMEBREW_TAP_TOKEN secret not set. Skipping tap update."
+            echo "To enable automatic tap updates, create a Personal Access Token with 'repo' scope"
+            echo "and add it as a repository secret named HOMEBREW_TAP_TOKEN."
+            exit 0
+          fi
+
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          SHA256="${{ steps.sha256.outputs.SHA256 }}"
+
+          git clone "https://x-access-token:${TAP_GITHUB_TOKEN}@github.com/jedisct1/homebrew-pingbar.git" tap-repo
+          mkdir -p tap-repo/Casks
+
+          cat > tap-repo/Casks/pingbar.rb <<'CASK_EOF'
+cask "pingbar" do
+  version "${VERSION}"
+  sha256 "${SHA256}"
+
+  url "https://github.com/jedisct1/pingbar/releases/download/v#{version}/pingbar-#{version}.tar.gz",
+      verified: "github.com/jedisct1/pingbar/"
+  name "PingBar"
+  desc "Menu bar app for network connectivity and DNS monitoring"
+  homepage "https://github.com/jedisct1/pingbar"
+
+  livecheck do
+    url :url
+    strategy :github_latest
+  end
+
+  depends_on macos: ">= :monterey"
+
+  app "PingBar.app"
+
+  zap trash: [
+    "~/Library/LaunchAgents/com.example.PingBar.plist",
+    "~/Library/Preferences/com.example.PingBar.plist",
+  ]
+
+  caveats <<~EOS
+    DNS changes require administrator privileges.
+  EOS
+end
+CASK_EOF
+
+          # Substitute version and sha256 into the generated file
+          sed -i "s/\${VERSION}/${VERSION}/g" tap-repo/Casks/pingbar.rb
+          sed -i "s/\${SHA256}/${SHA256}/g" tap-repo/Casks/pingbar.rb
+
+          cd tap-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Casks/pingbar.rb
+          git commit -m "Update PingBar to v${VERSION}" || echo "No changes to commit"
+          git push

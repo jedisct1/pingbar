@@ -9,7 +9,7 @@ APP_SPECIFIC_PW="app-specific-password"                # App-specific password (
 # ===================================
 
 APP="PingBar.app"
-ZIP="PingBar.zip"
+ARCHIVE="PingBar-notarization.zip"
 
 if [ ! -d "$APP" ]; then
   echo "Error: $APP not found. Build and bundle the app first."
@@ -21,15 +21,16 @@ codesign --deep --force --verify --verbose --options runtime --sign "$DEV_ID" "$
 
 
 echo "[2/4] Zipping the app for notarization..."
-rm -f "$ZIP"
-ditto -c -k --keepParent "$APP" "$ZIP"
+rm -f "$ARCHIVE"
+ditto -c -k --keepParent "$APP" "$ARCHIVE"
 
 
 echo "[3/4] Submitting for notarization..."
-xcrun notarytool submit "$ZIP" --apple-id "$APPLE_ID" --team-id "$TEAM_ID" --password "$APP_SPECIFIC_PW" --wait
+xcrun notarytool submit "$ARCHIVE" --apple-id "$APPLE_ID" --team-id "$TEAM_ID" --password "$APP_SPECIFIC_PW" --wait
 
 
 echo "[4/4] Stapling the notarization ticket..."
 xcrun stapler staple "$APP"
 
 echo "Done! $APP is signed and notarized." 
+echo "You can now create a distributable archive with ./package_release.sh"
