@@ -5,7 +5,7 @@
 - Confirm the release archive is universal (`arm64` and `x86_64`)
 - Confirm the release asset name is `pingbar-<version>.tar.gz`
 - Confirm `Info.plist` version matches the Git tag
-- Confirm `CFBundleIdentifier` is `com.pingbar.app`
+- Confirm `CFBundleIdentifier` is `com.example.PingBar`
 - Confirm `brew install --cask ./Casks/pingbar.rb` works locally
 - Confirm `brew uninstall --cask pingbar` works locally
 - Run `brew audit --new --cask ./Casks/pingbar.rb`

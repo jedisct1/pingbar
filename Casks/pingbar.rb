@@ -18,8 +18,8 @@ cask "pingbar" do
   app "PingBar.app"
 
   zap trash: [
-    "~/Library/LaunchAgents/com.pingbar.app.plist",
-    "~/Library/Preferences/com.pingbar.app.plist",
+    "~/Library/LaunchAgents/com.example.PingBar.plist",
+    "~/Library/Preferences/com.example.PingBar.plist",
   ]
 
   caveats <<~EOS

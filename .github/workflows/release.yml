@@ -97,7 +97,7 @@ jobs:
           sleep 10
           DOWNLOAD_URL="https://github.com/jedisct1/pingbar/releases/download/${GITHUB_REF_NAME}/pingbar-${{ steps.version.outputs.VERSION }}.tar.gz"
           curl -fSL "$DOWNLOAD_URL" -o pingbar.tar.gz
-          SHA=$(shasum -a 256 pingbar.tar.gz | awk '{print $1}')
+          SHA=$(sha256sum pingbar.tar.gz | awk '{print $1}')
           echo "SHA256=$SHA" >> "$GITHUB_OUTPUT"
           echo "SHA256: $SHA"
 
@@ -118,43 +118,40 @@ jobs:
           git clone "https://x-access-token:${TAP_GITHUB_TOKEN}@github.com/jedisct1/homebrew-pingbar.git" tap-repo
           mkdir -p tap-repo/Casks
 
-          cat > tap-repo/Casks/pingbar.rb <<CASK_EOF
-          cask "pingbar" do
-            version "${VERSION}"
-            sha256 "${SHA256}"
+          cat > tap-repo/Casks/pingbar.rb <<'CASK_EOF'
+cask "pingbar" do
+  version "${VERSION}"
+  sha256 "${SHA256}"
 
-            url "https://github.com/jedisct1/pingbar/releases/download/v#{version}/pingbar-#{version}.tar.gz",
-                verified: "github.com/jedisct1/pingbar/"
-            name "PingBar"
-            desc "Menu bar app for network connectivity and DNS monitoring"
-            homepage "https://github.com/jedisct1/pingbar"
+  url "https://github.com/jedisct1/pingbar/releases/download/v#{version}/pingbar-#{version}.tar.gz",
+      verified: "github.com/jedisct1/pingbar/"
+  name "PingBar"
+  desc "Menu bar app for network connectivity and DNS monitoring"
+  homepage "https://github.com/jedisct1/pingbar"
 
-            livecheck do
-              url :url
-              strategy :github_latest
-            end
+  livecheck do
+    url :url
+    strategy :github_latest
+  end
 
-            depends_on macos: ">= :monterey"
+  depends_on macos: ">= :monterey"
 
-            app "PingBar.app"
+  app "PingBar.app"
 
-            zap trash: [
-              "~/Library/Preferences/com.pingbar.app.plist",
-              "~/Library/LaunchAgents/com.pingbar.app.plist",
-            ]
+  zap trash: [
+    "~/Library/LaunchAgents/com.example.PingBar.plist",
+    "~/Library/Preferences/com.example.PingBar.plist",
+  ]
 
-            caveats <<~EOS
-              PingBar has been installed to /Applications/PingBar.app
+  caveats <<~EOS
+    DNS changes require administrator privileges.
+  EOS
+end
+CASK_EOF
 
-              To launch PingBar:
-                open /Applications/PingBar.app
-
-              On first launch:
-                - Grant necessary permissions when prompted
-                - DNS changes require admin privileges
-            EOS
-          end
-          CASK_EOF
+          # Substitute version and sha256 into the generated file
+          sed -i "s/\${VERSION}/${VERSION}/g" tap-repo/Casks/pingbar.rb
+          sed -i "s/\${SHA256}/${SHA256}/g" tap-repo/Casks/pingbar.rb
 
           cd tap-repo
           git config user.name "github-actions[bot]"

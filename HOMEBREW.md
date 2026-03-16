@@ -87,5 +87,5 @@ See [INSTALL.md](INSTALL.md) for more build options.
 
 ## Official Homebrew Cask
 
-This repository also contains an official-cask candidate at `Casks/pingbar.rb` and a submission checklist under `docs/homebrew-cask-pr-checklist.md`.
+This repository contains a cask candidate at `Casks/pingbar.rb` and a submission checklist under `docs/homebrew-cask-pr-checklist.md`.
 Acceptance into `homebrew/homebrew-cask` is reviewed by Homebrew maintainers and is not automatic.

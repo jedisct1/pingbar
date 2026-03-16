@@ -103,11 +103,11 @@ To completely remove PingBar from your system:
 2. **Remove the app**: Drag `PingBar.app` to Trash (usually in `/Applications/` or wherever you placed it)
 3. **Remove launch agent** (if enabled):
    ```sh
-   rm ~/Library/LaunchAgents/com.pingbar.app.plist
+   rm ~/Library/LaunchAgents/com.example.PingBar.plist
    ```
 4. **Remove preferences** (optional):
    ```sh
-   defaults delete com.pingbar.app
+   defaults delete com.example.PingBar
    ```
 
 That's it! PingBar stores minimal data and leaves no background processes running.
