@@ -4,9 +4,9 @@
 [![macOS](https://img.shields.io/badge/macOS-12.0+-green.svg)](https://www.apple.com/macos/)
 [![Swift](https://img.shields.io/badge/Swift-6.1-orange.svg)](https://swift.org)
 
-PingBar is a lightweight, modern, non-intrusive, native macOS menu bar app that continuously monitors your network connectivity and DNS settings.
+PingBar is a lightweight, modern, non-intrusive, native macOS menu bar app that continuously monitors network latency, packet loss, and DNS settings.
 
-It provides real-time ping statistics, network interface information, and **one-click DNS management including dnscrypt-proxy control**, all from your menu bar with minimal system resource usage.
+It provides real-time ping statistics, packet loss monitoring, network interface information, and **one-click DNS management including dnscrypt-proxy control**, all from your menu bar with minimal system resource usage.
 
 ## Screenshots
 
@@ -16,8 +16,9 @@ It provides real-time ping statistics, network interface information, and **one-
 
 The main menu shows real-time network status with:
 
-- Current ping time and status (🟢 for good connectivity)
+- Current ping time and status
 - Sparkline graph with ping statistics (avg/min/max)
+- Packet loss percentage and collection progress
 - Active network interfaces with IP addresses
 - Current DNS resolver information
 - Quick access to DNS management and preferences
@@ -29,18 +30,21 @@ The main menu shows real-time network status with:
 The preferences window allows you to configure:
 - Ping interval and target host
 - High ping threshold for warnings
+- Passive or active packet loss measurement
+- Packet loss thresholds, window size, and active probe cadence
 - DNS auto-revert behavior for captive portals
 - Launch at login option
 
 ## Features
 
-- **Live Network Status**: Pings a configurable host (default: Google) and shows status with colored icons (🟢/🟡/🔴/🟠) in the menu bar.
+- **Live Network Status**: Pings a configurable host (default: Google) and shows latency and packet loss together in a single menu bar icon.
+- **Packet Loss Monitoring**: Measures loss passively from the regular ping stream or actively with configurable burst probes.
 - **Historical Ping Graph**: Unicode sparkline graph and statistics (avg/min/max) for recent pings.
 - **Network Interface Info**: Displays active local IP addresses with interface names.
 - **DNS Resolver Display**: Shows current DNS resolvers for your default interface.
 - **DNS Management**: Change DNS for your default interface with one click (System Default, Cloudflare, Google, Quad9, 114DNS, dnscrypt-proxy, etc.). **Perfect for controlling dnscrypt-proxy usage from the menu bar.**
 - **Captive Portal Detection**: Detects captive portals and can auto-revert DNS to default, restoring your custom DNS after login.
-- **Preferences Dialog**: Configure ping interval, target host, high ping threshold, DNS auto-revert, and launch at login.
+- **Preferences Dialog**: Configure ping interval, target host, high ping threshold, packet loss mode, packet loss thresholds, DNS auto-revert, and launch at login.
 - **Auto-Start**: Optionally launch PingBar at login using a LaunchAgent.
 - **Lightweight & Native**: Built with Swift, AppKit, and SwiftPM. No Python or Electron, no bloat. Minimal memory footprint.
 
@@ -134,7 +138,7 @@ swift test
 ### Getting Started
 
 1. **Launch PingBar**: Double-click `PingBar.app` or run from the command line
-2. **Menu Bar Icon**: Look for the colored icon in your menu bar (🟢/🟡/🔴/🟠)
+2. **Menu Bar Icon**: Look for the ring icon in your menu bar. The center shows latency; the ring shows packet loss.
 3. **Click the Icon**: View network status, ping statistics, and current settings
 4. **Configure Settings**: Select "Preferences…" to customize behavior
 
@@ -142,6 +146,7 @@ swift test
 
 - **Network Status**: Current ping time and connection status
 - **Ping Graph**: Visual sparkline showing recent ping history with statistics
+- **Packet Loss**: Current packet loss percentage, mode, and collection progress
 - **Network Interfaces**: List of active network interfaces and their IP addresses
 - **DNS Servers**: Current DNS resolvers for your default interface
 - **DNS Management**: Quick access to change DNS settings
@@ -171,18 +176,39 @@ Access preferences via the menu bar icon → "Preferences…"
 | **Ping Interval**       | How often to ping the target (seconds)                   | 5.0                    |
 | **Target Host**         | URL or IP to ping                                        | https://www.google.com |
 | **High Ping Threshold** | Latency threshold for warning state (ms)                 | 200                    |
+| **Packet Loss Mode**    | Use the main ping stream (`Passive`) or active bursts (`Active`) for loss measurement | Passive |
+| **Active Probe Interval** | How often active packet loss bursts run (seconds)      | 30.0                   |
+| **Active Burst Size**   | Number of HEAD requests per active loss burst            | 5                      |
+| **Packet Loss Window**  | Number of recent results kept for packet loss            | 50                     |
+| **Loss Warning Threshold** | Packet loss percentage for yellow ring               | 3.0                    |
+| **Loss Bad Threshold**  | Packet loss percentage for red ring                      | 10.0                   |
 | **DNS Auto-Revert**     | Revert DNS to system default when network is unreachable | false                  |
 | **Restore Custom DNS**  | Restore custom DNS after captive portal login            | false                  |
 | **Launch at Login**     | Auto-start PingBar when you log in                       | false                  |
 
 ### Status Icons
 
-| Icon | Status         | Description                              |
-| ---- | -------------- | ---------------------------------------- |
-| 🟢    | Good           | Network is responsive (ping < threshold) |
-| 🟡    | Warning        | High latency (ping ≥ threshold)          |
-| 🔴    | Bad            | Network unreachable or failed            |
-| 🟠    | Captive Portal | Captive portal detected                  |
+PingBar now uses a combined icon instead of a single four-state dot:
+
+- **Center fill**: latency state
+- **Outer ring**: packet loss state
+
+| Element | State | Meaning |
+| ------- | ----- | ------- |
+| Center fill | Green → Yellow → Orange → Red | Increasing latency severity |
+| Center fill | Purple | Captive portal detected |
+| Center fill | Dark gray | Network unavailable |
+| Outer ring | Green | Packet loss below warning threshold |
+| Outer ring | Yellow | Packet loss above warning threshold |
+| Outer ring | Red | Packet loss above bad threshold |
+| Outer ring | Gray | Still collecting enough packet-loss samples |
+
+### Packet Loss Modes
+
+- **Passive**: Uses only the normal scheduled ping results. This adds no extra traffic.
+- **Active**: Runs additional HEAD request bursts to the same host for faster packet loss sampling.
+
+Captive portal detections are excluded from packet loss accounting.
 
 ### Captive Portal Handling
 
@@ -227,6 +253,8 @@ swift test --filter TestName
 
 - Use a reliable, fast target host for pinging
 - Set reasonable ping intervals (5-10 seconds recommended)
+- Use `Passive` packet loss mode if you want zero additional background traffic
+- Use `Active` mode only when you need faster or denser packet loss sampling; low intervals and high burst sizes can create substantial traffic
 - Enable launch at login for continuous monitoring
 
 ## Security
