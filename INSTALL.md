@@ -2,15 +2,14 @@
 
 ## Homebrew Installation (Recommended)
 
-1. Clone this repository:
+1. Add the tap that contains `Casks/pingbar.rb`:
    ```bash
-   git clone https://github.com/jedisct1/pingbar.git
-   cd pingbar
+   brew tap jedisct1/pingbar https://github.com/jedisct1/pingbar
    ```
 
 2. Install using Homebrew Cask:
    ```bash
-   brew install --cask ./Casks/pingbar.rb
+   brew install --cask jedisct1/pingbar/pingbar
    ```
 
 3. Launch PingBar (automatically installed to `/Applications`):

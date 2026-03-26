@@ -2,20 +2,22 @@
 
 ## Quick Installation
 
+Install PingBar from a tap that includes `Casks/pingbar.rb`:
+
 ```bash
-git clone https://github.com/jedisct1/pingbar.git
-cd pingbar
-brew install --cask ./Casks/pingbar.rb
+brew tap jedisct1/pingbar https://github.com/jedisct1/pingbar
+brew install --cask jedisct1/pingbar/pingbar
 open /Applications/PingBar.app
 ```
 
+If you do not want to use Homebrew, you can also download the notarized app bundle directly from the [GitHub Releases](https://github.com/jedisct1/pingbar/releases) page.
+
 ## What Happens During Installation
 
-1. Homebrew clones the PingBar source code locally
-2. Builds PingBar using Swift Package Manager during the `preflight` phase
-3. Creates the proper app bundle structure
-4. Installs PingBar.app directly to `/Applications/PingBar.app`
-5. Sets proper permissions and makes the app executable
+1. Homebrew downloads the published `PingBar.zip` binary from the latest tagged release
+2. Verifies the release checksum declared in `Casks/pingbar.rb`
+3. Installs `PingBar.app` directly to `/Applications/PingBar.app`
+4. Leaves build tools like Swift out of the installation path
 
 ## After Installation
 
@@ -34,61 +36,61 @@ The Cask installation automatically removes the app from `/Applications` and can
 ## Troubleshooting
 
 ### Cask Not Found
-If you get "cask not found", ensure you're in the correct directory and using the relative path:
-```bash
-# Make sure you're in the pingbar directory
-cd pingbar
-ls Casks/pingbar.rb  # Should exist
+If Homebrew cannot find the cask, make sure the tap is added and then install the fully-qualified cask name:
 
-# Use relative path to cask
-brew install --cask ./Casks/pingbar.rb
+```bash
+brew tap jedisct1/pingbar https://github.com/jedisct1/pingbar
+brew install --cask jedisct1/pingbar/pingbar
 ```
 
-### Build Failures
-- Ensure you have Xcode Command Line Tools: `xcode-select --install`
-- Check that Swift is available: `swift --version`
-- Verify macOS version is Monterey (12.0) or later
+### Download or Checksum Failures
+- Run `brew update` to refresh tap metadata
+- Confirm the latest GitHub release includes `PingBar.zip`
+- Verify the `version` and `sha256` values in `Casks/pingbar.rb` match the published release asset
 
 ### Permission Issues
-- The formula requires admin privileges to install to `/Applications`
-- You may be prompted for your password during installation
+- Homebrew may prompt for your password to install to `/Applications`
+- DNS changes inside PingBar still require admin privileges on first use
 
 ## Advanced Usage
 
 ### Check Cask Before Installing
 ```bash
-brew audit --strict --cask ./Casks/pingbar.rb
+brew audit --strict --cask jedisct1/pingbar/pingbar
 ```
 
 ### Force Reinstall
 ```bash
 brew uninstall --cask pingbar
-brew install --cask ./Casks/pingbar.rb
+brew install --cask jedisct1/pingbar/pingbar
 ```
 
 ### View Installation Details
 ```bash
-brew info pingbar
+brew info jedisct1/pingbar/pingbar
 ```
 
-## Why Local Cask Installation?
+## Why a Binary Cask?
 
-This approach avoids the need to create and maintain a separate `homebrew-pingbar` tap repository. Users can install directly from the main PingBar repository using the included Cask file.
+Homebrew does not support arbitrary local-path cask installation as a general distribution mechanism. Using the published release binary keeps installs predictable and closer to standard Homebrew practice.
 
 Benefits:
-- ✅ Single repository to maintain
-- ✅ Cask stays in sync with source code
-- ✅ No separate tap repository needed
-- ✅ Direct `/Applications` installation
-- ✅ Proper app bundle management
-- ✅ Clean uninstall with preferences cleanup
+- Downloads the exact notarized release build
+- Avoids requiring Swift or Xcode tools during installation
+- Keeps install behavior consistent across machines
+- Still allows the cask to live in the main repository or a dedicated tap
 
-## Alternative: Create a Homebrew Tap
+## Tap Layout
 
-If you prefer the traditional `brew tap` approach, you would need to:
+If you publish this cask through a dedicated tap, keep `pingbar.rb` under a top-level `Casks/` directory. Users can then install it with either:
 
-1. Create a separate `homebrew-pingbar` repository
-2. Copy the Cask file to that repository
-3. Users could then run: `brew tap jedisct1/pingbar && brew install --cask pingbar`
+```bash
+brew install --cask jedisct1/pingbar/pingbar
+```
 
-However, the local Cask approach is simpler and equally effective.
+or, after tapping first:
+
+```bash
+brew tap jedisct1/pingbar https://github.com/jedisct1/pingbar
+brew install --cask pingbar
+```

@@ -52,12 +52,11 @@ The preferences window allows you to configure:
 
 ### Homebrew (Recommended)
 
-Install PingBar using Homebrew Cask:
+Install PingBar using a tap that exposes `Casks/pingbar.rb`:
 
 ```bash
-git clone https://github.com/jedisct1/pingbar.git
-cd pingbar
-brew install --cask ./Casks/pingbar.rb
+brew tap jedisct1/pingbar https://github.com/jedisct1/pingbar
+brew install --cask jedisct1/pingbar/pingbar
 open /Applications/PingBar.app
 ```
 

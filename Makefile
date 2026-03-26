@@ -36,7 +36,7 @@ archive: bundle
 
 # Homebrew installation
 homebrew:
-	brew install --cask ./Casks/pingbar.rb
+	brew install --cask jedisct1/pingbar/pingbar
 
 # Homebrew uninstall
 homebrew-uninstall:
