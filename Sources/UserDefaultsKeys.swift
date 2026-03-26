@@ -18,4 +18,7 @@ enum UserDefaultsKey {
     static let packetLossBadThreshold = "PacketLossBadThreshold"
     static let packetLossProbeInterval = "PacketLossProbeInterval"
     static let packetLossBurstSize = "PacketLossBurstSize"
+
+    // Biometric auth
+    static let requireBiometricForDNS = "RequireBiometricForDNS"
 }

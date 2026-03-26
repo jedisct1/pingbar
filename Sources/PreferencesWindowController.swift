@@ -13,6 +13,7 @@ class PreferencesViewController: NSViewController {
     let packetLossBadThresholdField = NSTextField()
     let revertDNSCheckbox = NSButton(checkboxWithTitle: "Revert DNS to System Default when network is unreachable", target: nil, action: nil)
     let restoreDNSCheckbox = NSButton(checkboxWithTitle: "Restore my custom DNS after passing captive portal", target: nil, action: nil)
+    let biometricAuthCheckbox = NSButton(checkboxWithTitle: "Require Touch ID / password to change DNS", target: nil, action: nil)
     let launchAtLoginCheckbox = NSButton(checkboxWithTitle: "Launch PingBar at login", target: nil, action: nil)
     var onSave: (() -> Void)?
 
@@ -121,6 +122,8 @@ class PreferencesViewController: NSViewController {
         dnsStack.addArrangedSubview(dnsSectionLabel)
         dnsStack.addArrangedSubview(revertDNSCheckbox)
         dnsStack.addArrangedSubview(restoreDNSCheckbox)
+        biometricAuthCheckbox.isHidden = !BiometricAuthManager.isBiometricAvailable
+        dnsStack.addArrangedSubview(biometricAuthCheckbox)
 
         let systemStack = verticalStack(spacing: 8)
         systemStack.addArrangedSubview(systemSectionLabel)
@@ -169,6 +172,7 @@ class PreferencesViewController: NSViewController {
         revertDNSCheckbox.state = UserDefaults.standard.bool(forKey: UserDefaultsKey.revertDNSOnCaptivePortal) ? .on : .off
         restoreDNSCheckbox.state = UserDefaults.standard.bool(forKey: UserDefaultsKey.restoreCustomDNSAfterCaptive) ? .on : .off
         launchAtLoginCheckbox.state = UserDefaults.standard.bool(forKey: UserDefaultsKey.launchAtLogin) ? .on : .off
+        biometricAuthCheckbox.state = UserDefaults.standard.bool(forKey: UserDefaultsKey.requireBiometricForDNS) ? .on : .off
         refreshPacketLossFieldState()
     }
 
@@ -220,6 +224,7 @@ class PreferencesViewController: NSViewController {
         UserDefaults.standard.set(revertDNS, forKey: UserDefaultsKey.revertDNSOnCaptivePortal)
         UserDefaults.standard.set(restoreDNS, forKey: UserDefaultsKey.restoreCustomDNSAfterCaptive)
         UserDefaults.standard.set(launchAtLogin, forKey: UserDefaultsKey.launchAtLogin)
+        UserDefaults.standard.set(biometricAuthCheckbox.state == .on, forKey: UserDefaultsKey.requireBiometricForDNS)
 
         onSave?()
         view.window?.close()

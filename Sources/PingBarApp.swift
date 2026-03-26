@@ -234,6 +234,33 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
         guard let ip = sender.representedObject as? String? else { return }
         guard let iface = NetworkUtilities.defaultInterface(), let service = NetworkUtilities.networkServiceName(for: iface) else { return }
         let dnsArg = ip ?? "Empty"
+
+        let requireAuth = UserDefaults.standard.bool(forKey: UserDefaultsKey.requireBiometricForDNS)
+
+        if requireAuth {
+            let dnsName = dnsArg == "Empty" ? "System Default" : DNSManager.displayName(for: dnsArg)
+            BiometricAuthManager.authenticate(reason: "Authenticate to change DNS to \(dnsName)") { [weak self] result in
+                switch result {
+                case .success:
+                    self?.performDNSChange(service: service, dnsArg: dnsArg)
+                case .cancelled:
+                    break
+                case .failed(let message):
+                    let alert = NSAlert()
+                    alert.messageText = "Authentication Failed"
+                    alert.informativeText = message
+                    alert.runModal()
+                case .unavailable:
+                    self?.performDNSChange(service: service, dnsArg: dnsArg)
+                }
+            }
+        } else {
+            performDNSChange(service: service, dnsArg: dnsArg)
+        }
+    }
+
+    @MainActor
+    private func performDNSChange(service: String, dnsArg: String) {
         if dnsArg != "Empty" {
             UserDefaults.standard.set(dnsArg, forKey: UserDefaultsKey.lastCustomDNS)
         } else {
