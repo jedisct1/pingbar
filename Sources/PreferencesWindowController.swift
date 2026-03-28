@@ -22,7 +22,6 @@ class PreferencesViewController: NSViewController {
         view.translatesAutoresizingMaskIntoConstraints = false
         view.setFrameSize(NSSize(width: 520, height: 520))
         view.wantsLayer = true
-        view.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
 
         let headerLabel = NSTextField(labelWithString: "⚙️ PingBar Preferences")
         headerLabel.font = NSFont.systemFont(ofSize: 18, weight: .semibold)
@@ -307,15 +306,12 @@ class PreferencesViewController: NSViewController {
         textField.font = NSFont.systemFont(ofSize: 13)
         textField.isEditable = true
         textField.isBezeled = true
+        textField.bezelStyle = .roundedBezel
         textField.drawsBackground = true
         textField.translatesAutoresizingMaskIntoConstraints = false
         textField.alignment = .left
         textField.controlSize = .regular
         textField.preferredMaxLayoutWidth = 220
-        textField.wantsLayer = true
-        textField.layer?.cornerRadius = 4
-        textField.layer?.borderWidth = 1
-        textField.layer?.borderColor = NSColor.separatorColor.cgColor
     }
 
     private func stylePopup(_ popup: NSPopUpButton) {
@@ -336,20 +332,12 @@ class PreferencesViewController: NSViewController {
         if isPrimary {
             button.keyEquivalent = "\r"
         }
-        button.wantsLayer = true
-        button.layer?.cornerRadius = 6
-        if isPrimary {
-            button.layer?.backgroundColor = NSColor.controlAccentColor.cgColor
-            button.contentTintColor = NSColor.white
-        }
     }
 
-    private func createSeparator() -> NSView {
-        let separator = NSView()
-        separator.wantsLayer = true
-        separator.layer?.backgroundColor = NSColor.separatorColor.cgColor
+    private func createSeparator() -> NSBox {
+        let separator = NSBox()
+        separator.boxType = .separator
         separator.translatesAutoresizingMaskIntoConstraints = false
-        separator.heightAnchor.constraint(equalToConstant: 1).isActive = true
         return separator
     }
 }
