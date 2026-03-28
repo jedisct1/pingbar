@@ -23,26 +23,26 @@ class PreferencesViewController: NSViewController {
         view.setFrameSize(NSSize(width: 520, height: 520))
         view.wantsLayer = true
 
-        let headerLabel = NSTextField(labelWithString: "⚙️ PingBar Preferences")
+        let headerLabel = NSTextField(labelWithString: "PingBar Preferences")
         headerLabel.font = NSFont.systemFont(ofSize: 18, weight: .semibold)
         headerLabel.alignment = .center
         headerLabel.textColor = NSColor.labelColor
 
-        let networkSectionLabel = sectionLabel("🌐 Network Settings")
-        let packetLossSectionLabel = sectionLabel("📉 Packet Loss")
-        let dnsSectionLabel = sectionLabel("🔧 DNS Management")
-        let systemSectionLabel = sectionLabel("💻 System Integration")
+        let networkSectionLabel = sectionLabel("Network Settings")
+        let packetLossSectionLabel = sectionLabel("Packet Loss")
+        let dnsSectionLabel = sectionLabel("DNS Management")
+        let systemSectionLabel = sectionLabel("System Integration")
 
-        let intervalLabel = fieldLabel("⏱ Ping interval (seconds):")
-        let hostLabel = fieldLabel("🎯 Target host (URL):")
-        let highPingLabel = fieldLabel("⚠️ High ping threshold (ms):")
-        let customDNSLabel = fieldLabel("🔧 Custom DNS (optional):")
-        let packetLossModeLabel = fieldLabel("📊 Loss measurement mode:")
-        let packetLossProbeIntervalLabel = fieldLabel("⏱ Active probe interval (s):")
-        let packetLossBurstSizeLabel = fieldLabel("📦 Active burst size:")
-        let packetLossWindowSizeLabel = fieldLabel("🪟 Loss window size:")
-        let packetLossWarningThresholdLabel = fieldLabel("🟡 Warning threshold (%):")
-        let packetLossBadThresholdLabel = fieldLabel("🔴 Bad threshold (%):")
+        let intervalLabel = fieldLabel("Ping interval (seconds):")
+        let hostLabel = fieldLabel("Target host (URL):")
+        let highPingLabel = fieldLabel("High ping threshold (ms):")
+        let customDNSLabel = fieldLabel("Custom DNS (optional):")
+        let packetLossModeLabel = fieldLabel("Loss measurement mode:")
+        let packetLossProbeIntervalLabel = fieldLabel("Active probe interval (s):")
+        let packetLossBurstSizeLabel = fieldLabel("Active burst size:")
+        let packetLossWindowSizeLabel = fieldLabel("Loss window size:")
+        let packetLossWarningThresholdLabel = fieldLabel("Warning threshold (%):")
+        let packetLossBadThresholdLabel = fieldLabel("Bad threshold (%):")
 
         styleTextField(intervalField)
         intervalField.stringValue = String(defaultDouble(for: UserDefaultsKey.pingInterval, fallback: 5.0))
@@ -91,8 +91,8 @@ class PreferencesViewController: NSViewController {
         styleCheckbox(restoreDNSCheckbox)
         styleCheckbox(launchAtLoginCheckbox)
 
-        let saveButton = NSButton(title: "💾 Save Settings", target: self, action: #selector(saveClicked))
-        let cancelButton = NSButton(title: "❌ Cancel", target: self, action: #selector(cancelClicked))
+        let saveButton = NSButton(title: "Save Settings", target: self, action: #selector(saveClicked))
+        let cancelButton = NSButton(title: "Cancel", target: self, action: #selector(cancelClicked))
         styleButton(saveButton, isPrimary: true)
         styleButton(cancelButton, isPrimary: false)
         saveButton.setContentHuggingPriority(.required, for: .horizontal)
