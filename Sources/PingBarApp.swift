@@ -15,6 +15,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
     private var dnsRevertedForOutage = false
     private var customDNSBeforeCaptive: String?
     private var graphMenuItem: NSMenuItem?
+    private var statsMenuItem: NSMenuItem?
     private var latestLatencyMs: Int?
     private var latestPingStatus: PingManager.PingStatus = .bad
 
@@ -30,6 +31,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
 
         let menu = NSMenu()
         menu.delegate = self
+        menu.autoenablesItems = false
 
         let pingItem = NSMenuItem(title: "Checking...", action: nil, keyEquivalent: "")
         self.stylePingMenuItem(pingItem)
@@ -39,27 +41,31 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
         self.styleGraphMenuItem(graphItem)
         menu.addItem(graphItem)
 
+        let statsItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+        self.styleStatsMenuItem(statsItem)
+        menu.addItem(statsItem)
+
         let lossItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
-        self.styleGraphMenuItem(lossItem)
+        self.styleLossMenuItem(lossItem)
         menu.addItem(lossItem)
 
         menu.addItem(.separator())
 
-        let prefsItem = NSMenuItem(title: "⚙ Preferences…", action: #selector(showPreferences), keyEquivalent: ",")
+        let prefsItem = NSMenuItem(title: "Preferences…", action: #selector(showPreferences), keyEquivalent: ",")
         self.styleSystemMenuItem(prefsItem)
         menu.addItem(prefsItem)
 
-        menu.addItem(.separator())
-
-        let quitItem = NSMenuItem(title: "⏻ Quit PingBar", action: #selector(quit), keyEquivalent: "q")
-        self.styleSystemMenuItem(quitItem)
+        let quitItem = NSMenuItem(title: "Quit PingBar", action: #selector(quit), keyEquivalent: "q")
+        self.styleQuitMenuItem(quitItem)
         menu.addItem(quitItem)
         statusItem?.menu = menu
         self.pingMenuItem = pingItem
         self.graphMenuItem = graphItem
+        self.statsMenuItem = statsItem
         self.packetLossMenuItem = lossItem
         self.preferencesMenuItem = prefsItem
         self.graphMenuItem?.isHidden = true
+        self.statsMenuItem?.isHidden = true
         self.packetLossMenuItem?.isHidden = true
 
         pingManager.onPingResult = { [weak self] result in
@@ -70,18 +76,22 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
             self.latestLatencyMs = result.latencyMs
             let pings = self.pingManager.recentPings
             if !pings.isEmpty {
-                let spark = SparklineRenderer.renderSparkline(pings: pings)
-                let avg = pings.reduce(0, +) / pings.count
-                let minPing = pings.min() ?? 0
-                let maxPing = pings.max() ?? 0
-                self.graphMenuItem?.title = "📊 \(spark)  ⌀ \(avg)ms  ↓ \(minPing)ms  ↑ \(maxPing)ms"
+                self.graphMenuItem?.title = self.graphTitle(for: pings)
                 if let graphItem = self.graphMenuItem {
                     self.styleGraphMenuItem(graphItem)
                 }
                 self.graphMenuItem?.isHidden = false
+
+                self.statsMenuItem?.title = self.statsTitle(for: pings)
+                if let statsItem = self.statsMenuItem {
+                    self.styleStatsMenuItem(statsItem)
+                }
+                self.statsMenuItem?.isHidden = false
             } else {
                 self.graphMenuItem?.title = ""
                 self.graphMenuItem?.isHidden = true
+                self.statsMenuItem?.title = ""
+                self.statsMenuItem?.isHidden = true
             }
             switch result.status {
             case .good, .warning:
@@ -131,10 +141,11 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
         guard let preferencesMenuItem, let baseInsertIndex = menu.items.firstIndex(of: preferencesMenuItem) else { return }
         var insertIndex = baseInsertIndex
         let ifaces = NetworkUtilities.localInterfaceAddresses()
-        if !ifaces.isEmpty {
+        let showNetworkInterfaces = shouldShowNetworkInterfaces()
+        if showNetworkInterfaces, !ifaces.isEmpty {
             for (idx, (iface, ip)) in ifaces.enumerated() {
                 let ipItem = NSMenuItem(title: "🌐 \(iface): \(ip)", action: nil, keyEquivalent: "")
-                self.styleInfoMenuItem(ipItem)
+                self.styleNetworkInterfaceMenuItem(ipItem)
                 menu.insertItem(ipItem, at: insertIndex + idx)
                 ipMenuItems.append(ipItem)
             }
@@ -144,24 +155,16 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
             insertIndex += ifaces.count + 1
         }
         let dnsResolvers = NetworkUtilities.currentDNSResolvers()
-        if !dnsResolvers.isEmpty {
-            let sep = NSMenuItem.separator()
-            menu.insertItem(sep, at: insertIndex)
-            ipMenuItems.append(sep)
-            insertIndex += 1
-            for (idx, dns) in dnsResolvers.enumerated() {
-                let display = DNSManager.displayName(for: dns)
-                let dnsItem = NSMenuItem(title: "🔍 DNS: \(display)", action: nil, keyEquivalent: "")
-                self.styleInfoMenuItem(dnsItem)
-                menu.insertItem(dnsItem, at: insertIndex + idx)
-                ipMenuItems.append(dnsItem)
-            }
-            let sepAfter = NSMenuItem.separator()
-            menu.insertItem(sepAfter, at: insertIndex + dnsResolvers.count)
-            ipMenuItems.append(sepAfter)
-            insertIndex += dnsResolvers.count + 1
-        }
-        let dnsMenu = NSMenu(title: "Set DNS for Default Interface")
+        let dnsMenu = NSMenu(title: "DNS")
+        let currentDNSItem = NSMenuItem(
+            title: currentDNSSummary(from: dnsResolvers),
+            action: nil,
+            keyEquivalent: ""
+        )
+        self.styleInfoMenuItem(currentDNSItem)
+        dnsMenu.addItem(currentDNSItem)
+        dnsMenu.addItem(.separator())
+
         var dnsOptions: [(String, String?)] = [
             ("🏠 System Default", nil),
             ("🔒 dnscrypt-proxy (127.0.0.1)", "127.0.0.1"),
@@ -190,9 +193,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
             self.styleDNSMenuItem(item)
             dnsMenu.addItem(item)
         }
-        let dnsMenuItem = NSMenuItem(title: "🔧 Set DNS for Default Interface", action: nil, keyEquivalent: "")
+        let dnsMenuItem = NSMenuItem(title: "DNS", action: nil, keyEquivalent: "")
         dnsMenuItem.submenu = dnsMenu
-        self.styleSystemMenuItem(dnsMenuItem)
+        self.styleDNSRootMenuItem(dnsMenuItem)
         menu.insertItem(dnsMenuItem, at: insertIndex)
         self.dnsMenuItem = dnsMenuItem
     }
@@ -283,53 +286,139 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
         guard let item = packetLossMenuItem else { return }
         let sampleCount = pingManager.lossTracker.sampleCount
         let windowSize = pingManager.packetLossWindowSize
-        let mode = pingManager.packetLossMode.displayName.lowercased()
-        if pingManager.lossTracker.hasEnoughSamples {
-            let lossText = String(format: "%.1f", pingManager.lossTracker.lossPercent)
-            item.title = "📉 Loss: \(lossText)% (\(mode), \(sampleCount)/\(windowSize))"
-            item.isHidden = false
-        } else if sampleCount > 0 {
-            item.title = "📉 Loss: collecting (\(mode), \(sampleCount)/\(windowSize))"
-            item.isHidden = false
-        } else {
+        item.title = packetLossTitle(
+            lossPercent: pingManager.lossTracker.lossPercent,
+            mode: pingManager.packetLossMode.displayName,
+            sampleCount: sampleCount,
+            windowSize: windowSize,
+            hasEnoughSamples: pingManager.lossTracker.hasEnoughSamples
+        )
+        if item.title.isEmpty {
             item.title = ""
             item.isHidden = true
+        } else {
+            item.isHidden = false
         }
-        styleGraphMenuItem(item)
+        styleLossMenuItem(item)
+    }
+
+    func shouldShowNetworkInterfaces() -> Bool {
+        if UserDefaults.standard.object(forKey: UserDefaultsKey.showNetworkInterfaces) == nil {
+            return true
+        }
+        return UserDefaults.standard.bool(forKey: UserDefaultsKey.showNetworkInterfaces)
+    }
+
+    func currentDNSSummary(from resolvers: [String]) -> String {
+        guard !resolvers.isEmpty else {
+            return "Current: Unavailable"
+        }
+
+        let names = resolvers.map(DNSManager.displayName(for:))
+        return "Current: \(names.joined(separator: ", "))"
+    }
+
+    func graphTitle(for pings: [Int]) -> String {
+        guard !pings.isEmpty else {
+            return ""
+        }
+
+        let spark = SparklineRenderer.renderSparkline(pings: pings)
+        return "Trend  \(spark)"
+    }
+
+    func statsTitle(for pings: [Int]) -> String {
+        guard !pings.isEmpty else {
+            return ""
+        }
+
+        let avg = pings.reduce(0, +) / pings.count
+        let sorted = pings.sorted()
+        let minPing = sorted.first ?? 0
+        let maxPing = sorted.last ?? 0
+        let median: Int
+
+        if sorted.count.isMultiple(of: 2) {
+            let upperMiddle = sorted.count / 2
+            let lowerMiddle = upperMiddle - 1
+            median = (sorted[lowerMiddle] + sorted[upperMiddle]) / 2
+        } else {
+            median = sorted[sorted.count / 2]
+        }
+
+        return "avg \(avg)ms | med \(median)ms | min \(minPing)ms | max \(maxPing)ms"
+    }
+
+    func packetLossTitle(
+        lossPercent: Double,
+        mode: String,
+        sampleCount: Int,
+        windowSize: Int,
+        hasEnoughSamples: Bool
+    ) -> String {
+        guard hasEnoughSamples || sampleCount > 0 else {
+            return ""
+        }
+
+        let modeLabel = mode.lowercased()
+        if hasEnoughSamples {
+            return String(format: "Loss  %.1f%% | %@ | %d/%d", lossPercent, modeLabel, sampleCount, windowSize)
+        }
+
+        return "Loss  collecting | \(modeLabel) | \(sampleCount)/\(windowSize)"
     }
 
     private func stylePingMenuItem(_ item: NSMenuItem) {
-        let font = NSFont.monospacedSystemFont(ofSize: 13, weight: .medium)
-        let attributes: [NSAttributedString.Key: Any] = [
-            .font: font,
-            .foregroundColor: NSColor.labelColor
-        ]
-        let attributedTitle = NSAttributedString(string: item.title, attributes: attributes)
-        item.attributedTitle = attributedTitle
+        let font = NSFont.monospacedSystemFont(ofSize: 17, weight: .semibold)
+        styleStaticMenuItem(
+            item,
+            font: font,
+            color: pingHeadlineColor(for: item.title),
+            minimumWidth: 350,
+            verticalPadding: 5
+        )
     }
 
     private func styleGraphMenuItem(_ item: NSMenuItem) {
-        let font = NSFont.monospacedSystemFont(ofSize: 11, weight: .regular)
-        let attributes: [NSAttributedString.Key: Any] = [
-            .font: font,
-            .foregroundColor: NSColor.secondaryLabelColor
-        ]
-        let attributedTitle = NSAttributedString(string: item.title, attributes: attributes)
-        item.attributedTitle = attributedTitle
+        let font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+        styleStaticMenuItem(item, font: font, color: .labelColor, minimumWidth: 350, verticalPadding: 3)
+    }
+
+    private func styleStatsMenuItem(_ item: NSMenuItem) {
+        let font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+        styleStaticMenuItem(item, font: font, color: .secondaryLabelColor, minimumWidth: 350, verticalPadding: 2)
+    }
+
+    private func styleLossMenuItem(_ item: NSMenuItem) {
+        let font = NSFont.systemFont(ofSize: 13, weight: .medium)
+        styleStaticMenuItem(
+            item,
+            font: font,
+            color: packetLossRowColor(),
+            minimumWidth: 350,
+            verticalPadding: 3
+        )
     }
 
     private func styleInfoMenuItem(_ item: NSMenuItem) {
         let font = NSFont.systemFont(ofSize: 12, weight: .regular)
-        let attributes: [NSAttributedString.Key: Any] = [
-            .font: font,
-            .foregroundColor: NSColor.tertiaryLabelColor
-        ]
-        let attributedTitle = NSAttributedString(string: item.title, attributes: attributes)
-        item.attributedTitle = attributedTitle
+        styleStaticMenuItem(item, font: font, color: .labelColor)
+    }
+
+    private func styleNetworkInterfaceMenuItem(_ item: NSMenuItem) {
+        let font = NSFont.systemFont(ofSize: 12, weight: .regular)
+        styleStaticMenuItem(
+            item,
+            font: font,
+            color: .secondaryLabelColor,
+            verticalPadding: 5
+        )
     }
 
     private func styleSystemMenuItem(_ item: NSMenuItem) {
-        let font = NSFont.systemFont(ofSize: 13, weight: .medium)
+        item.isEnabled = true
+        item.view = nil
+        let font = NSFont.systemFont(ofSize: 12, weight: .medium)
         let attributes: [NSAttributedString.Key: Any] = [
             .font: font,
             .foregroundColor: NSColor.labelColor
@@ -339,6 +428,8 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
     }
 
     private func styleDNSMenuItem(_ item: NSMenuItem) {
+        item.isEnabled = true
+        item.view = nil
         let font = NSFont.systemFont(ofSize: 12, weight: .regular)
         let attributes: [NSAttributedString.Key: Any] = [
             .font: font,
@@ -346,6 +437,101 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
         ]
         let attributedTitle = NSAttributedString(string: item.title, attributes: attributes)
         item.attributedTitle = attributedTitle
+    }
+
+    private func styleDNSRootMenuItem(_ item: NSMenuItem) {
+        styleSystemMenuItem(item)
+        if let image = NSImage(systemSymbolName: "globe", accessibilityDescription: "DNS") {
+            image.isTemplate = true
+            item.image = image
+        }
+    }
+
+    private func styleQuitMenuItem(_ item: NSMenuItem) {
+        styleSystemMenuItem(item)
+        if let image = NSImage(systemSymbolName: "power", accessibilityDescription: "Quit PingBar") {
+            image.isTemplate = true
+            item.image = image
+        }
+    }
+
+    private func pingHeadlineColor(for title: String) -> NSColor {
+        if title == "Checking..." {
+            return .labelColor
+        }
+
+        switch latestPingStatus {
+        case .good:
+            return .labelColor
+        case .warning:
+            return .systemOrange
+        case .bad:
+            return .systemRed
+        case .captivePortal:
+            return .systemYellow
+        }
+    }
+
+    private func packetLossRowColor() -> NSColor {
+        if !pingManager.lossTracker.hasEnoughSamples {
+            return .secondaryLabelColor
+        }
+
+        switch pingManager.lossTracker.level {
+        case .good:
+            return .labelColor
+        case .warning:
+            return .systemOrange
+        case .bad:
+            return .systemRed
+        }
+    }
+
+    private func styleStaticMenuItem(
+        _ item: NSMenuItem,
+        font: NSFont,
+        color: NSColor,
+        minimumWidth: CGFloat = 220,
+        verticalPadding: CGFloat = 2
+    ) {
+        item.isEnabled = false
+        item.attributedTitle = nil
+        item.view = makeMenuLabelView(
+            text: item.title,
+            font: font,
+            color: color,
+            minimumWidth: minimumWidth,
+            verticalPadding: verticalPadding
+        )
+    }
+
+    private func makeMenuLabelView(
+        text: String,
+        font: NSFont,
+        color: NSColor,
+        minimumWidth: CGFloat,
+        verticalPadding: CGFloat
+    ) -> NSView {
+        let label = NSTextField(labelWithString: text)
+        label.font = font
+        label.textColor = color
+        label.lineBreakMode = .byTruncatingTail
+        label.maximumNumberOfLines = 1
+        label.translatesAutoresizingMaskIntoConstraints = false
+
+        let container = NSView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(label)
+
+        NSLayoutConstraint.activate([
+            label.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 12),
+            label.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -12),
+            label.topAnchor.constraint(equalTo: container.topAnchor, constant: verticalPadding),
+            label.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -verticalPadding),
+            container.widthAnchor.constraint(equalToConstant: max(label.intrinsicContentSize.width + 24, minimumWidth))
+        ])
+
+        return container
     }
 
 }
