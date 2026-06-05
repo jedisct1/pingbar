@@ -13,6 +13,7 @@ class PreferencesViewController: NSViewController {
     let packetLossBadThresholdField = NSTextField()
     let revertDNSCheckbox = NSButton(checkboxWithTitle: "Revert DNS to System Default when network is unreachable", target: nil, action: nil)
     let restoreDNSCheckbox = NSButton(checkboxWithTitle: "Restore my custom DNS after passing captive portal", target: nil, action: nil)
+    let showNetworkInterfacesCheckbox = NSButton(checkboxWithTitle: "Show network interfaces section in the menu", target: nil, action: nil)
     let launchAtLoginCheckbox = NSButton(checkboxWithTitle: "Launch PingBar at login", target: nil, action: nil)
     var onSave: (() -> Void)?
 
@@ -28,7 +29,8 @@ class PreferencesViewController: NSViewController {
         headerLabel.alignment = .center
         headerLabel.textColor = NSColor.labelColor
 
-        let networkSectionLabel = sectionLabel("Network Settings")
+        let networkSectionLabel = sectionLabel("Ping Settings")
+        let interfacesSectionLabel = sectionLabel("Network Interfaces")
         let packetLossSectionLabel = sectionLabel("Packet Loss")
         let dnsSectionLabel = sectionLabel("DNS Management")
         let systemSectionLabel = sectionLabel("System Integration")
@@ -89,6 +91,7 @@ class PreferencesViewController: NSViewController {
 
         styleCheckbox(revertDNSCheckbox)
         styleCheckbox(restoreDNSCheckbox)
+        styleCheckbox(showNetworkInterfacesCheckbox)
         styleCheckbox(launchAtLoginCheckbox)
 
         let saveButton = NSButton(title: "Save Settings", target: self, action: #selector(saveClicked))
@@ -116,6 +119,10 @@ class PreferencesViewController: NSViewController {
         packetLossStack.addArrangedSubview(makeRow(label: packetLossWarningThresholdLabel, control: packetLossWarningThresholdField))
         packetLossStack.addArrangedSubview(makeRow(label: packetLossBadThresholdLabel, control: packetLossBadThresholdField))
 
+        let interfacesStack = verticalStack(spacing: 8)
+        interfacesStack.addArrangedSubview(interfacesSectionLabel)
+        interfacesStack.addArrangedSubview(showNetworkInterfacesCheckbox)
+
         let dnsStack = verticalStack(spacing: 8)
         dnsStack.addArrangedSubview(dnsSectionLabel)
         dnsStack.addArrangedSubview(revertDNSCheckbox)
@@ -129,6 +136,8 @@ class PreferencesViewController: NSViewController {
         formStack.addArrangedSubview(networkStack)
         formStack.addArrangedSubview(createSeparator())
         formStack.addArrangedSubview(packetLossStack)
+        formStack.addArrangedSubview(createSeparator())
+        formStack.addArrangedSubview(interfacesStack)
         formStack.addArrangedSubview(createSeparator())
         formStack.addArrangedSubview(dnsStack)
         formStack.addArrangedSubview(createSeparator())
@@ -167,6 +176,7 @@ class PreferencesViewController: NSViewController {
 
         revertDNSCheckbox.state = UserDefaults.standard.bool(forKey: UserDefaultsKey.revertDNSOnCaptivePortal) ? .on : .off
         restoreDNSCheckbox.state = UserDefaults.standard.bool(forKey: UserDefaultsKey.restoreCustomDNSAfterCaptive) ? .on : .off
+        showNetworkInterfacesCheckbox.state = showNetworkInterfacesPreference() ? .on : .off
         launchAtLoginCheckbox.state = UserDefaults.standard.bool(forKey: UserDefaultsKey.launchAtLogin) ? .on : .off
         refreshPacketLossFieldState()
     }
@@ -204,6 +214,7 @@ class PreferencesViewController: NSViewController {
 
         let revertDNS = (revertDNSCheckbox.state == .on)
         let restoreDNS = (restoreDNSCheckbox.state == .on)
+        let showNetworkInterfaces = (showNetworkInterfacesCheckbox.state == .on)
         let launchAtLogin = (launchAtLoginCheckbox.state == .on)
 
         UserDefaults.standard.set(interval, forKey: UserDefaultsKey.pingInterval)
@@ -218,6 +229,7 @@ class PreferencesViewController: NSViewController {
         UserDefaults.standard.set(packetLossBadThreshold, forKey: UserDefaultsKey.packetLossBadThreshold)
         UserDefaults.standard.set(revertDNS, forKey: UserDefaultsKey.revertDNSOnCaptivePortal)
         UserDefaults.standard.set(restoreDNS, forKey: UserDefaultsKey.restoreCustomDNSAfterCaptive)
+        UserDefaults.standard.set(showNetworkInterfaces, forKey: UserDefaultsKey.showNetworkInterfaces)
         UserDefaults.standard.set(launchAtLogin, forKey: UserDefaultsKey.launchAtLogin)
 
         onSave?()
@@ -248,6 +260,13 @@ class PreferencesViewController: NSViewController {
     private func defaultDouble(for key: String, fallback: Double) -> Double {
         let value = UserDefaults.standard.double(forKey: key)
         return value > 0 ? value : fallback
+    }
+
+    private func showNetworkInterfacesPreference() -> Bool {
+        if UserDefaults.standard.object(forKey: UserDefaultsKey.showNetworkInterfaces) == nil {
+            return true
+        }
+        return UserDefaults.standard.bool(forKey: UserDefaultsKey.showNetworkInterfaces)
     }
 
     private func isValidIPAddress(_ ip: String) -> Bool {

@@ -9,6 +9,7 @@ enum UserDefaultsKey {
     static let revertDNSOnCaptivePortal = "RevertDNSOnCaptivePortal"
     static let restoreCustomDNSAfterCaptive = "RestoreCustomDNSAfterCaptive"
     static let launchAtLogin = "LaunchAtLogin"
+    static let showNetworkInterfaces = "ShowNetworkInterfaces"
     static let lastCustomDNS = "LastCustomDNS"
 
     // Packet loss keys
