@@ -20,3 +20,12 @@ enum UserDefaultsKey {
     static let packetLossProbeInterval = "PacketLossProbeInterval"
     static let packetLossBurstSize = "PacketLossBurstSize"
 }
+
+extension UserDefaults {
+    var showNetworkInterfaces: Bool {
+        if object(forKey: UserDefaultsKey.showNetworkInterfaces) == nil {
+            return true
+        }
+        return bool(forKey: UserDefaultsKey.showNetworkInterfaces)
+    }
+}

@@ -303,10 +303,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
     }
 
     func shouldShowNetworkInterfaces() -> Bool {
-        if UserDefaults.standard.object(forKey: UserDefaultsKey.showNetworkInterfaces) == nil {
-            return true
-        }
-        return UserDefaults.standard.bool(forKey: UserDefaultsKey.showNetworkInterfaces)
+        return UserDefaults.standard.showNetworkInterfaces
     }
 
     func currentDNSSummary(from resolvers: [String]) -> String {
@@ -315,6 +312,11 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
         }
 
         let names = resolvers.map(DNSManager.displayName(for:))
+        let maxShown = 2
+        if names.count > maxShown {
+            let shown = names.prefix(maxShown).joined(separator: ", ")
+            return "Current: \(shown) +\(names.count - maxShown) more"
+        }
         return "Current: \(names.joined(separator: ", "))"
     }
 
@@ -496,42 +498,56 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
     ) {
         item.isEnabled = false
         item.attributedTitle = nil
-        item.view = makeMenuLabelView(
-            text: item.title,
-            font: font,
-            color: color,
-            minimumWidth: minimumWidth,
-            verticalPadding: verticalPadding
-        )
+        if let existing = item.view as? MenuLabelView {
+            existing.update(text: item.title, font: font, color: color, minimumWidth: minimumWidth)
+        } else {
+            item.view = MenuLabelView(
+                text: item.title,
+                font: font,
+                color: color,
+                minimumWidth: minimumWidth,
+                verticalPadding: verticalPadding
+            )
+        }
     }
 
-    private func makeMenuLabelView(
-        text: String,
-        font: NSFont,
-        color: NSColor,
-        minimumWidth: CGFloat,
-        verticalPadding: CGFloat
-    ) -> NSView {
-        let label = NSTextField(labelWithString: text)
-        label.font = font
-        label.textColor = color
+}
+
+final class MenuLabelView: NSView {
+    private let label = NSTextField(labelWithString: "")
+    private var widthConstraint: NSLayoutConstraint!
+
+    init(text: String, font: NSFont, color: NSColor, minimumWidth: CGFloat, verticalPadding: CGFloat) {
+        super.init(frame: .zero)
+        translatesAutoresizingMaskIntoConstraints = false
         label.lineBreakMode = .byTruncatingTail
         label.maximumNumberOfLines = 1
         label.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(label)
+        setAccessibilityRole(.staticText)
 
-        let container = NSView()
-        container.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(label)
-
+        widthConstraint = widthAnchor.constraint(equalToConstant: minimumWidth)
         NSLayoutConstraint.activate([
-            label.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 12),
-            label.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -12),
-            label.topAnchor.constraint(equalTo: container.topAnchor, constant: verticalPadding),
-            label.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -verticalPadding),
-            container.widthAnchor.constraint(equalToConstant: max(label.intrinsicContentSize.width + 24, minimumWidth))
+            label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
+            label.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
+            label.topAnchor.constraint(equalTo: topAnchor, constant: verticalPadding),
+            label.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -verticalPadding),
+            widthConstraint
         ])
 
-        return container
+        update(text: text, font: font, color: color, minimumWidth: minimumWidth)
     }
 
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) is not supported")
+    }
+
+    func update(text: String, font: NSFont, color: NSColor, minimumWidth: CGFloat) {
+        label.stringValue = text
+        label.font = font
+        label.textColor = color
+        setAccessibilityLabel(text)
+        widthConstraint.constant = max(label.intrinsicContentSize.width + 24, minimumWidth)
+    }
 }

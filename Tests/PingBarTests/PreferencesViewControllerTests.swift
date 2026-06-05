@@ -24,6 +24,11 @@ final class PreferencesViewControllerTests: XCTestCase {
     func testSavePersistsShowNetworkInterfacesPreference() {
         let viewController = PreferencesViewController()
         viewController.loadViewIfNeeded()
+
+        viewController.hostField.stringValue = "https://www.google.com"
+        viewController.customDNSField.stringValue = ""
+        viewController.packetLossWarningThresholdField.stringValue = "3"
+        viewController.packetLossBadThresholdField.stringValue = "10"
         viewController.showNetworkInterfacesCheckbox.state = .off
 
         viewController.saveClicked()

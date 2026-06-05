@@ -263,10 +263,7 @@ class PreferencesViewController: NSViewController {
     }
 
     private func showNetworkInterfacesPreference() -> Bool {
-        if UserDefaults.standard.object(forKey: UserDefaultsKey.showNetworkInterfaces) == nil {
-            return true
-        }
-        return UserDefaults.standard.bool(forKey: UserDefaultsKey.showNetworkInterfaces)
+        return UserDefaults.standard.showNetworkInterfaces
     }
 
     private func isValidIPAddress(_ ip: String) -> Bool {

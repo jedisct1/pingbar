@@ -43,6 +43,15 @@ final class AppDelegateTests: XCTestCase {
         XCTAssertEqual(appDelegate.currentDNSSummary(from: []), "Current: Unavailable")
     }
 
+    func testCurrentDNSSummaryCapsLongResolverLists() {
+        let appDelegate = AppDelegate()
+
+        XCTAssertEqual(
+            appDelegate.currentDNSSummary(from: ["1.1.1.1", "8.8.8.8", "9.9.9.9", "192.168.1.1"]),
+            "Current: Cloudflare, Google +2 more"
+        )
+    }
+
     func testGraphTitleUsesDedicatedTrendLine() {
         let appDelegate = AppDelegate()
         let pings = [10, 50, 100, 75]
