@@ -5,7 +5,8 @@ struct LaunchAgentManager {
     static func setLaunchAtLogin(enabled: Bool) {
         let fileManager = FileManager.default
         let label = "com.example.PingBar"
-        guard let agentDir = (fileManager.homeDirectoryForCurrentUser as NSURL).appendingPathComponent("Library/LaunchAgents") else { return }
+        let homeDir = fileManager.homeDirectoryForCurrentUser as NSURL
+        guard let agentDir = homeDir.appendingPathComponent("Library/LaunchAgents") else { return }
         let agentPlist = agentDir.appendingPathComponent("\(label).plist")
         let appPath = Bundle.main.bundlePath + "/Contents/MacOS/PingBar"
         let plist: [String: Any] = [

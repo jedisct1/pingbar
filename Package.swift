@@ -39,6 +39,6 @@ let package = Package(
             name: "PingBarTests",
             dependencies: ["PingBarLib"],
             path: "Tests"
-        ),
+        )
     ]
 )

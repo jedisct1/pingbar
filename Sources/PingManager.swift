@@ -2,27 +2,6 @@ import Foundation
 
 @MainActor
 final class PingManager {
-    enum PingStatus {
-        case good, warning, bad, captivePortal
-    }
-
-    enum PacketLossMode: String {
-        case passive
-        case active
-
-        var displayName: String {
-            rawValue.capitalized
-        }
-    }
-
-    struct PingResult {
-        let status: PingStatus
-        let message: String
-        let latencyMs: Int?
-        let success: Bool
-        let isCountable: Bool
-    }
-
     private var timer: Timer?
     private var activeBurstTimer: Timer?
     private var currentPingTask: URLSessionDataTask?
@@ -82,10 +61,14 @@ final class PingManager {
         let threshold = defaults.integer(forKey: UserDefaultsKey.highPingThreshold).nonZeroOr(200)
         highPingThresholdValue = max(1, threshold)
 
-        packetLossMode = PacketLossMode(rawValue: defaults.string(forKey: UserDefaultsKey.packetLossMode) ?? "") ?? .passive
-        packetLossWindowSize = max(10, min(defaults.integer(forKey: UserDefaultsKey.packetLossWindowSize).nonZeroOr(50), 500))
-        packetLossProbeInterval = max(1.0, defaults.double(forKey: UserDefaultsKey.packetLossProbeInterval).nonZeroOr(30.0))
-        packetLossBurstSize = max(1, min(defaults.integer(forKey: UserDefaultsKey.packetLossBurstSize).nonZeroOr(5), 100))
+        let modeRaw = defaults.string(forKey: UserDefaultsKey.packetLossMode) ?? ""
+        packetLossMode = PacketLossMode(rawValue: modeRaw) ?? .passive
+        let windowVal = defaults.integer(forKey: UserDefaultsKey.packetLossWindowSize)
+        packetLossWindowSize = max(10, min(windowVal.nonZeroOr(50), 500))
+        let probeVal = defaults.double(forKey: UserDefaultsKey.packetLossProbeInterval)
+        packetLossProbeInterval = max(1.0, probeVal.nonZeroOr(30.0))
+        let burstVal = defaults.integer(forKey: UserDefaultsKey.packetLossBurstSize)
+        packetLossBurstSize = max(1, min(burstVal.nonZeroOr(5), 100))
 
         let warningThreshold = defaults.double(forKey: UserDefaultsKey.packetLossWarningThreshold).nonZeroOr(3.0)
         let badThreshold = defaults.double(forKey: UserDefaultsKey.packetLossBadThreshold).nonZeroOr(10.0)
@@ -117,7 +100,8 @@ final class PingManager {
         }
 
         if packetLossMode == .active {
-            activeBurstTimer = Timer.scheduledTimer(withTimeInterval: packetLossProbeInterval, repeats: true) { [weak self] _ in
+            let probeInterval = packetLossProbeInterval
+            activeBurstTimer = Timer.scheduledTimer(withTimeInterval: probeInterval, repeats: true) { [weak self] _ in
                 guard let self else { return }
                 Task { @MainActor in
                     self.runActiveBurst()
@@ -265,7 +249,10 @@ final class PingManager {
         }
     }
 
-    private func makeProbeTask(
+}
+
+private extension PingManager {
+    func makeProbeTask(
         for targetURL: URL,
         captureLatency: Bool,
         completion: @escaping @Sendable (Bool, Int?) -> Void
@@ -280,7 +267,7 @@ final class PingManager {
         }
     }
 
-    private func detectCaptivePortal(completion: @escaping @Sendable (Bool) -> Void) {
+    func detectCaptivePortal(completion: @escaping @Sendable (Bool) -> Void) {
         guard let captiveURL = URL(string: "http://www.gstatic.com/generate_204") else {
             completion(false)
             return
@@ -296,6 +283,29 @@ final class PingManager {
             }
         }
         task.resume()
+    }
+}
+
+extension PingManager {
+    enum PingStatus {
+        case good, warning, bad, captivePortal
+    }
+
+    enum PacketLossMode: String {
+        case passive
+        case active
+
+        var displayName: String {
+            rawValue.capitalized
+        }
+    }
+
+    struct PingResult {
+        let status: PingStatus
+        let message: String
+        let latencyMs: Int?
+        let success: Bool
+        let isCountable: Bool
     }
 }
 

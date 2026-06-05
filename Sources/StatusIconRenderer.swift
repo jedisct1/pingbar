@@ -56,24 +56,24 @@ struct StatusIconRenderer {
         case .bad:
             return NSColor(calibratedRed: 0.4, green: 0.4, blue: 0.4, alpha: 1.0) // dark gray
         case .good, .warning:
-            guard let ms = latencyMs else {
+            guard let latency = latencyMs else {
                 return NSColor(calibratedRed: 0.4, green: 0.4, blue: 0.4, alpha: 1.0)
             }
-            return latencyBandColor(ms: ms)
+            return latencyBandColor(latency: latency)
         }
     }
 
     /// 6-band latency color gradient.
-    private static func latencyBandColor(ms: Int) -> NSColor {
-        switch ms {
+    private static func latencyBandColor(latency: Int) -> NSColor {
+        switch latency {
         case ..<50:
             return NSColor.systemGreen
         case 50..<100:
-            return interpolate(from: NSColor.systemGreen, to: NSColor.systemYellow, fraction: Double(ms - 50) / 50.0)
+            return interpolate(from: NSColor.systemGreen, to: NSColor.systemYellow, fraction: Double(latency - 50) / 50.0)
         case 100..<200:
-            return interpolate(from: NSColor.systemYellow, to: NSColor.systemOrange, fraction: Double(ms - 100) / 100.0)
+            return interpolate(from: NSColor.systemYellow, to: NSColor.systemOrange, fraction: Double(latency - 100) / 100.0)
         case 200..<400:
-            return interpolate(from: NSColor.systemOrange, to: NSColor.systemRed, fraction: Double(ms - 200) / 200.0)
+            return interpolate(from: NSColor.systemOrange, to: NSColor.systemRed, fraction: Double(latency - 200) / 200.0)
         default:
             return NSColor.systemRed
         }
@@ -95,16 +95,16 @@ struct StatusIconRenderer {
     }
 
     /// Linear interpolation between two NSColors in sRGB space.
-    private static func interpolate(from: NSColor, to: NSColor, fraction: Double) -> NSColor {
-        let f = max(0, min(1, fraction))
-        guard let fromRGB = from.usingColorSpace(.sRGB),
-              let toRGB = to.usingColorSpace(.sRGB) else {
-            return from
+    private static func interpolate(from start: NSColor, to end: NSColor, fraction: Double) -> NSColor {
+        let clamped = CGFloat(max(0, min(1, fraction)))
+        guard let fromRGB = start.usingColorSpace(.sRGB),
+              let toRGB = end.usingColorSpace(.sRGB) else {
+            return start
         }
-        let r = fromRGB.redComponent + CGFloat(f) * (toRGB.redComponent - fromRGB.redComponent)
-        let g = fromRGB.greenComponent + CGFloat(f) * (toRGB.greenComponent - fromRGB.greenComponent)
-        let b = fromRGB.blueComponent + CGFloat(f) * (toRGB.blueComponent - fromRGB.blueComponent)
-        let a = fromRGB.alphaComponent + CGFloat(f) * (toRGB.alphaComponent - fromRGB.alphaComponent)
-        return NSColor(srgbRed: r, green: g, blue: b, alpha: a)
+        let red = fromRGB.redComponent + clamped * (toRGB.redComponent - fromRGB.redComponent)
+        let grn = fromRGB.greenComponent + clamped * (toRGB.greenComponent - fromRGB.greenComponent)
+        let blu = fromRGB.blueComponent + clamped * (toRGB.blueComponent - fromRGB.blueComponent)
+        let alp = fromRGB.alphaComponent + clamped * (toRGB.alphaComponent - fromRGB.alphaComponent)
+        return NSColor(srgbRed: red, green: grn, blue: blu, alpha: alp)
     }
 }

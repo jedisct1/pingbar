@@ -2,7 +2,7 @@ import XCTest
 @testable import PingBarLib
 
 final class DNSManagerTests: XCTestCase {
-    
+
     func testDNSNameMapping() {
         XCTAssertEqual(DNSManager.dnsNameMap["1.1.1.1"], "Cloudflare")
         XCTAssertEqual(DNSManager.dnsNameMap["8.8.8.8"], "Google")
@@ -10,12 +10,12 @@ final class DNSManagerTests: XCTestCase {
         XCTAssertEqual(DNSManager.dnsNameMap["127.0.0.1"], "dnscrypt-proxy")
         XCTAssertEqual(DNSManager.dnsNameMap["114.114.114.114"], "114DNS")
     }
-    
+
     func testDNSNameMappingUnknown() {
         XCTAssertNil(DNSManager.dnsNameMap["192.168.1.1"])
         XCTAssertNil(DNSManager.dnsNameMap["unknown.dns"])
     }
-    
+
     // Note: We don't test setDNS here as it requires:
     // 1. Administrator privileges
     // 2. Actual system modification

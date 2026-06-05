@@ -22,9 +22,9 @@ struct DNSManager {
             // If the custom DNS contains a space, treat it as "IP Name" format
             let components = customDNS.components(separatedBy: " ")
             if components.count >= 2 {
-                let ip = components[0]
+                let addr = components[0]
                 let name = components.dropFirst().joined(separator: " ")
-                if dnsServer == ip {
+                if dnsServer == addr {
                     return name
                 }
             } else if dnsServer == customDNS {
@@ -92,12 +92,19 @@ struct DNSManager {
         return (false, output.isEmpty ? "Failed to update DNS settings" : output)
     }
 
-    private static func runNetworkSetupPrivileged(service: String, dnsString: String) -> (success: Bool, message: String) {
-        let command = "/usr/sbin/networksetup -setdnsservers \(shellQuote(service)) \(shellQuote(dnsString))"
+    private static func runNetworkSetupPrivileged(
+        service: String,
+        dnsString: String
+    ) -> (success: Bool, message: String) {
+        let command = "/usr/sbin/networksetup -setdnsservers "
+            + "\(shellQuote(service)) \(shellQuote(dnsString))"
         let escapedCommand = escapeForAppleScript(command)
 
-        let dnsDescription = dnsString == "Empty" ? "System Default" : displayName(for: dnsString)
-        let escapedPrompt = escapeForAppleScript("PingBar needs administrator privileges to change DNS for \(service) to \(dnsDescription)")
+        let dnsDescription = dnsString == "Empty"
+            ? "System Default" : displayName(for: dnsString)
+        let prompt = "PingBar needs administrator privileges "
+            + "to change DNS for \(service) to \(dnsDescription)"
+        let escapedPrompt = escapeForAppleScript(prompt)
 
         let script = """
         do shell script "\(escapedCommand)" with administrator privileges with prompt "\(escapedPrompt)"
