@@ -8,7 +8,7 @@ cask "pingbar" do
   desc "macOS menu bar application for network connectivity monitoring and DNS management"
   homepage "https://github.com/jedisct1/pingbar"
 
-  depends_on macos: ">= :monterey"
+  depends_on macos: :monterey
 
   app "PingBar.app"
 
