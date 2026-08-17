@@ -60,9 +60,11 @@ brew install --cask jedisct1/pingbar/pingbar
 open /Applications/PingBar.app
 ```
 
+The cask installs the same Apple Silicon build as the Releases page.
+
 ### Download
 
-Download the latest release from the [Releases](https://github.com/jedisct1/pingbar/releases) page. Pre-built binaries are available for both Intel and Apple Silicon Macs.
+Download the latest release from the [Releases](https://github.com/jedisct1/pingbar/releases) page. The published builds run on Apple Silicon only. On an Intel Mac, build from source instead.
 
 ### Build from Source
 
@@ -272,7 +274,7 @@ PingBar does not:
 ## System Requirements
 
 - **macOS**: 12.0 (Monterey) or later
-- **Architecture**: Intel x64 or Apple Silicon (Universal Binary)
+- **Architecture**: Apple Silicon for the published builds, Intel Macs from source
 - **Memory**: 50MB RAM typical usage
 - **Permissions**: Administrator access for DNS changes (optional)
 
