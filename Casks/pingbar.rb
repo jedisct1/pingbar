@@ -4,7 +4,7 @@ cask "pingbar" do
 
   url "https://github.com/jedisct1/pingbar/releases/download/v#{version}/PingBar.zip"
   name "PingBar"
-  desc "Menu bar application for network monitoring and DNS management"
+  desc "Menu bar application for network connectivity monitoring and DNS management"
   homepage "https://github.com/jedisct1/pingbar"
 
   depends_on macos: :monterey
