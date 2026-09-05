@@ -2,10 +2,9 @@ cask "pingbar" do
   version "1.2.0"
   sha256 "5cc1bfad28f1c54d9db57b95378eb08b5a74f9a493c8490d802f278a24293f75"
 
-  url "https://github.com/jedisct1/pingbar/releases/download/v#{version}/PingBar.zip",
-      verified: "github.com/jedisct1/pingbar/"
+  url "https://github.com/jedisct1/pingbar/releases/download/v#{version}/PingBar.zip"
   name "PingBar"
-  desc "macOS menu bar application for network connectivity monitoring and DNS management"
+  desc "Menu bar application for network monitoring and DNS management"
   homepage "https://github.com/jedisct1/pingbar"
 
   depends_on macos: :monterey
@@ -13,8 +12,8 @@ cask "pingbar" do
   app "PingBar.app"
 
   zap trash: [
-    "~/Library/Preferences/com.pingbar.app.plist",
     "~/Library/LaunchAgents/com.pingbar.app.plist",
+    "~/Library/Preferences/com.pingbar.app.plist",
   ]
 
   caveats <<~EOS
